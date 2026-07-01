@@ -1,0 +1,117 @@
+// Schema de base de datos - Iglesia Misión Panamericana Centro de Fe y Esperanza
+// DB: PostgreSQL (Supabase free tier)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ADMIN
+  PASTOR
+  LIDER
+}
+
+enum EstadoCita {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+  COMPLETADA
+}
+
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  email        String   @unique
+  passwordHash String
+  rol          Rol      @default(LIDER)
+  telefono     String?
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  citasComoPastor Cita[] @relation("PastorCitas")
+
+  @@map("usuarios")
+}
+
+model Persona {
+  id               Int       @id @default(autoincrement())
+  nombres          String
+  apellidos        String
+  tipoDocumento    String? // CC, TI, RC, CE
+  numeroDocumento  String?   @unique
+  telefono         String?
+  email            String?
+  direccion        String?
+  fechaNacimiento  DateTime?
+  genero           String?
+  estadoCivil      String?
+  ministerio       String? // ej: Alabanza, Jóvenes, Niños, Damas, Varones
+  rolIglesia       String? // ej: Miembro, Líder, Diácono, Visitante
+  fechaIngreso     DateTime  @default(now())
+  fechaBautismo    DateTime?
+  notas            String?
+  activo           Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  citas            Cita[]
+
+  @@map("personas")
+}
+
+model Servicio {
+  id           Int      @id @default(autoincrement())
+  nombre       String // ej: "Servicio Dominical", "Culto de Oración"
+  diaSemana    String // "Domingo", "Lunes", ... "Sábado"
+  horaInicio   String // "09:00"
+  horaFin      String?
+  lugar        String?
+  descripcion  String?
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("servicios")
+}
+
+model Evento {
+  id          Int      @id @default(autoincrement())
+  titulo      String
+  descripcion String?
+  fecha       DateTime
+  horaInicio  String?
+  horaFin     String?
+  lugar       String?
+  imagenUrl   String?
+  tipo        String? // ej: "Próximo", "Realizado" (se puede derivar de fecha también)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("eventos")
+}
+
+model Cita {
+  id                    Int        @id @default(autoincrement())
+  personaId             Int?
+  persona               Persona?   @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  nombreSolicitante     String
+  telefonoSolicitante   String
+  emailSolicitante      String?
+  pastorId              Int
+  pastor                Usuario    @relation("PastorCitas", fields: [pastorId], references: [id])
+  fecha                 DateTime
+  hora                  String
+  motivo                String?
+  estado                EstadoCita @default(PENDIENTE)
+  notasInternas         String?
+  createdAt             DateTime   @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@map("citas")
+}
