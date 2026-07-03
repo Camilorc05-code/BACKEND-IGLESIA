@@ -89,12 +89,29 @@ model Evento {
   horaInicio  String?
   horaFin     String?
   lugar       String?
-  imagenUrl   String?
-  tipo        String? // ej: "Próximo", "Realizado" (se puede derivar de fecha también)
+  imagenUrl   String? // imagen de portada
+  categoria   String  @default("Otro")
+  // Categorías sugeridas: "Cumbre Ministerial", "Fiesta de Primicias",
+  // "Juntos Bajo la Bendición de Dios", "Acción de Gracias",
+  // "Ministerio M.I.A", "Ministerio M.J.P", "Vigilia", "Día del Padre",
+  // "Día de la Madre", "Otro"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  imagenes    EventoImagen[]
+
   @@map("eventos")
+}
+
+model EventoImagen {
+  id        Int      @id @default(autoincrement())
+  eventoId  Int
+  evento    Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  url       String
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("evento_imagenes")
 }
 
 model Cita {
