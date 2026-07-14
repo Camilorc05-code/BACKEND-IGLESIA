@@ -10,11 +10,22 @@ const citasRoutes = require('./routes/citas.routes');
 
 const app = express();
 
-// CORS: en producción, restringe esto al dominio de tu frontend (ver .env)
-const allowedOrigins = (process.env.FRONTEND_URL || '*').split(',');
+// Lista de orígenes permitidos (separados por coma en .env)
+const allowedOrigins = (process.env.FRONTEND_URL || '').split(',');
+
 app.use(
   cors({
-    origin: allowedOrigins.includes('*') ? true : allowedOrigins,
+    origin: function (origin, callback) {
+      // Permite peticiones sin origen (ej. Postman) o desde dominios autorizados
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('No permitido por CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
