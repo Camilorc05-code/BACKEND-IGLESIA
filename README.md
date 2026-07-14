@@ -36,8 +36,8 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
 Usuario admin creado por el seed:
-- Email: `admin@iglesia.com`
-- Password: `CambiaEstaClave123` ⚠️ cámbiala apenas puedas (crea otro admin y desactiva este, o actualízalo directo en Supabase Table Editor).
+- Email: `jhojancamilorodriguez2017@gmail.com`
+- Password: `camilo74845348` ⚠️ cámbiala apenas puedas (crea otro admin y desactiva este, o actualízalo directo en Supabase Table Editor).
 
 ## 3. Desplegar gratis en Render
 
