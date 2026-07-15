@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const authRoutes = require('./routes/auth.routes');
 const personasRoutes = require('./routes/personas.routes');
@@ -32,9 +31,6 @@ app.use(
 );
 
 app.use(express.json());
-
-// Servir archivos estáticos desde /uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API - Iglesia Misión Panamericana Centro de Fe y Esperanza', ok: true });
