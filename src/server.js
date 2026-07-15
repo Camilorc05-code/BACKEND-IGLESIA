@@ -11,6 +11,9 @@ const uploadRoutes = require('./routes/upload.routes');
 
 const app = express();
 
+// Render usa proxy inverso — necesario para rate-limit y X-Forwarded-For
+app.set('trust proxy', 1);
+
 // Lista de orígenes permitidos (separados por coma en .env)
 const allowedOrigins = (process.env.FRONTEND_URL || '').split(',');
 
