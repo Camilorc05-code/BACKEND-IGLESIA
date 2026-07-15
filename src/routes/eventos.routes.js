@@ -19,6 +19,19 @@ const CATEGORIAS = [
   'Otro',
 ];
 
+/**
+ * Convierte una fecha "YYYY-MM-DD" (del input type="date") a ISO DateTime completo.
+ * Si ya es ISO completo, la retorna tal cual.
+ */
+function normalizarFecha(fecha) {
+  if (!fecha) return fecha;
+  // Si es solo "YYYY-MM-DD", agregar hora midnight en UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return new Date(fecha + 'T00:00:00.000Z').toISOString();
+  }
+  return fecha;
+}
+
 // GET /api/eventos/categorias — PÚBLICO
 router.get('/categorias', (req, res) => res.json(CATEGORIAS));
 
@@ -66,17 +79,18 @@ router.post(
   '/',
   requireAuth,
   requireRole('ADMIN', 'PASTOR', 'LIDER'),
-  [body('titulo').notEmpty(), body('fecha').isISO8601()],
+  [body('titulo').notEmpty(), body('fecha').notEmpty()],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Datos inválidos', details: errors.array() });
     }
-    const { imagenes, ...datos } = req.body;
+    const { imagenes, fecha, ...datos } = req.body;
     try {
       const evento = await prisma.evento.create({
         data: {
           ...datos,
+          fecha: normalizarFecha(fecha),
           imagenes: imagenes?.length
             ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
             : undefined,
@@ -93,19 +107,21 @@ router.post(
 
 // PUT /api/eventos/:id — reemplaza también la galería si se envía "imagenes"
 router.put('/:id', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) => {
-  const { imagenes, ...datos } = req.body;
+  const { imagenes, fecha, ...datos } = req.body;
   try {
     if (imagenes) {
       await prisma.eventoImagen.deleteMany({ where: { eventoId: Number(req.params.id) } });
     }
+    const updateData = {
+      ...datos,
+      fecha: normalizarFecha(fecha),
+      imagenes: imagenes?.length
+        ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
+        : undefined,
+    };
     const evento = await prisma.evento.update({
       where: { id: Number(req.params.id) },
-      data: {
-        ...datos,
-        imagenes: imagenes?.length
-          ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
-          : undefined,
-      },
+      data: updateData,
       include: { imagenes: { orderBy: { orden: 'asc' } } },
     });
     res.json(evento);
