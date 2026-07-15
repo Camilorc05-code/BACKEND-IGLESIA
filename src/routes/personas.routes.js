@@ -71,17 +71,25 @@ router.post(
     }
 
     try {
+      // Validar manualmente si viene numeroDocumento
+      if (req.body.numeroDocumento) {
+        const existe = await prisma.persona.findUnique({
+          where: { numeroDocumento: req.body.numeroDocumento }
+        });
+        if (existe) {
+          return res.status(409).json({ error: 'Ya existe una persona con ese número de documento.' });
+        }
+      }
+
       const persona = await prisma.persona.create({ data: req.body });
       res.status(201).json(persona);
     } catch (err) {
       console.error(err);
-      if (err.code === 'P2002') {
-        return res.status(409).json({ error: 'Ya existe una persona con ese número de documento.' });
-      }
       res.status(500).json({ error: 'Error al crear persona.' });
     }
   }
 );
+
 
 // PUT /api/personas/:id
 router.put('/:id', async (req, res) => {
