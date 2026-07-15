@@ -24,6 +24,7 @@
     "express-rate-limit": "^7.4.0",
     "express-validator": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "npm": "^11.18.0",
     "run": "^1.5.0",
     "seed": "^0.4.4"
