@@ -60,7 +60,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/personas
 router.post(
   '/',
   [body('nombres').notEmpty(), body('apellidos').notEmpty()],
@@ -71,7 +70,7 @@ router.post(
     }
 
     try {
-      // Validar manualmente si viene numeroDocumento
+      // Validar duplicado solo si hay documento
       if (req.body.numeroDocumento) {
         const existe = await prisma.persona.findUnique({
           where: { numeroDocumento: req.body.numeroDocumento }
@@ -85,10 +84,12 @@ router.post(
       res.status(201).json(persona);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Error al crear persona.' });
+      // Mostrar más detalle para depuración
+      res.status(500).json({ error: 'Error al crear persona.', details: err.message });
     }
   }
 );
+
 
 
 // PUT /api/personas/:id
