@@ -45,7 +45,7 @@ model Persona {
   nombres          String
   apellidos        String
   tipoDocumento    String? // CC, TI, RC, CE
-  numeroDocumento  String?   @unique
+  numeroDocumento  String?   
   telefono         String?
   email            String?
   direccion        String?

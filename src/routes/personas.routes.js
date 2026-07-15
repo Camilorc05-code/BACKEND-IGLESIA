@@ -70,7 +70,7 @@ router.post(
     }
 
     try {
-      // Validar duplicado solo si hay documento
+      // Validar duplicado solo si hay numeroDocumento
       if (req.body.numeroDocumento) {
         const existe = await prisma.persona.findUnique({
           where: { numeroDocumento: req.body.numeroDocumento }
@@ -84,13 +84,10 @@ router.post(
       res.status(201).json(persona);
     } catch (err) {
       console.error(err);
-      // Mostrar más detalle para depuración
       res.status(500).json({ error: 'Error al crear persona.', details: err.message });
     }
   }
 );
-
-
 
 // PUT /api/personas/:id
 router.put('/:id', async (req, res) => {
