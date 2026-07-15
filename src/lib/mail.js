@@ -16,19 +16,24 @@ const transporter = nodemailer.createTransport({
  */
 async function enviarCorreo({ to, subject, html }) {
   if (!process.env.SMTP_USER) {
-    console.warn('[mail] SMTP_USER no configurado — correo no enviado');
+    console.warn('[mail] SMTP_USER no configurado — correo NO enviado a', to);
     return null;
   }
 
-  const info = await transporter.sendMail({
-    from: process.env.SMTP_FROM || `"Misión Panamericana" <${process.env.SMTP_USER}>`,
-    to,
-    subject,
-    html,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || `"Misión Panamericana" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    });
 
-  console.log('[mail] Correo enviado:', info.messageId);
-  return info;
+    console.log('[mail] ✅ Correo enviado a', to, '| ID:', info.messageId);
+    return info;
+  } catch (err) {
+    console.error('[mail] ❌ Error enviando correo a', to, ':', err.message);
+    return null;
+  }
 }
 
 /**
