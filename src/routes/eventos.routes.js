@@ -74,11 +74,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/eventos — solo ADMIN/PASTOR/LIDER
+// POST /api/eventos — solo ADMIN
 router.post(
   '/',
   requireAuth,
-  requireRole('ADMIN', 'PASTOR', 'LIDER'),
+  requireRole('ADMIN'),
   [body('titulo').notEmpty(), body('fecha').notEmpty()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -106,7 +106,7 @@ router.post(
 );
 
 // PUT /api/eventos/:id — reemplaza también la galería si se envía "imagenes"
-router.put('/:id', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) => {
+router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   const { imagenes, fecha, ...datos } = req.body;
   try {
     if (imagenes) {
@@ -131,8 +131,8 @@ router.put('/:id', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), async (
   }
 });
 
-// DELETE /api/eventos/:id
-router.delete('/:id', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res) => {
+// DELETE /api/eventos/:id — solo ADMIN
+router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
     await prisma.evento.delete({ where: { id: Number(req.params.id) } });
     res.status(204).send();

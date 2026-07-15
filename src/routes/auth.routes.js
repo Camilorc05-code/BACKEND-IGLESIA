@@ -99,4 +99,36 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json(usuario);
 });
 
+// GET /api/auth/usuarios — listar todos los usuarios (solo ADMIN)
+router.get('/usuarios', requireAuth, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      select: { id: true, nombre: true, email: true, rol: true, telefono: true, activo: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(usuarios);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al listar usuarios.' });
+  }
+});
+
+// PUT /api/auth/usuarios/:id/toggle — activar/desactivar usuario (solo ADMIN)
+router.put('/usuarios/:id/toggle', requireAuth, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const usuario = await prisma.usuario.findUnique({ where: { id: Number(req.params.id) } });
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    const actualizado = await prisma.usuario.update({
+      where: { id: Number(req.params.id) },
+      data: { activo: !usuario.activo },
+      select: { id: true, nombre: true, email: true, rol: true, activo: true },
+    });
+    res.json(actualizado);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar usuario.' });
+  }
+});
+
 module.exports = router;

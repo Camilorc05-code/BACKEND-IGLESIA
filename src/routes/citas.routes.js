@@ -13,17 +13,55 @@ const limiterCitasPublicas = rateLimit({
   message: { error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.' },
 });
 
-// GET /api/citas/pastores-disponibles — PÚBLICO (lista de pastores para el formulario)
+// GET /api/citas/pastores-disponibles — PÚBLICO (lista de pastores/líderes para el formulario)
 router.get('/pastores-disponibles', async (req, res) => {
   try {
     const pastores = await prisma.usuario.findMany({
-      where: { rol: { in: ['PASTOR', 'ADMIN'] }, activo: true },
-      select: { id: true, nombre: true },
+      where: { rol: { in: ['PASTOR', 'LIDER'] }, activo: true },
+      select: { id: true, nombre: true, rol: true },
     });
     res.json(pastores);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener pastores.' });
+  }
+});
+
+// GET /api/citas/ocupados — PÚBLICO: devuelve slots ocupados para el calendario
+// Query params opcionales: mes (YYYY-MM), pastorId
+router.get('/ocupados', async (req, res) => {
+  const { mes, pastorId } = req.query;
+
+  const where = {
+    estado: { not: 'CANCELADA' },
+    ...(pastorId ? { pastorId: Number(pastorId) } : {}),
+    ...(mes
+      ? {
+          fecha: {
+            gte: new Date(mes + '-01T00:00:00.000Z'),
+            lt: new Date(new Date(mes + '-01T00:00:00.000Z').setMonth(new Date(mes + '-01T00:00:00.000Z').getMonth() + 1)),
+          },
+        }
+      : {}),
+  };
+
+  try {
+    const citas = await prisma.cita.findMany({
+      where,
+      select: {
+        fecha: true,
+        hora: true,
+        pastorId: true,
+        estado: true,
+        nombreSolicitante: true,
+        pastor: { select: { nombre: true } },
+      },
+      orderBy: { fecha: 'asc' },
+    });
+    res.json(citas);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener citas ocupadas.' });
   }
 });
 
@@ -148,8 +186,8 @@ router.put(
   }
 );
 
-// DELETE /api/citas/:id — solo ADMIN/PASTOR
-router.delete('/:id', requireRole('ADMIN', 'PASTOR'), async (req, res) => {
+// DELETE /api/citas/:id — ADMIN/PASTOR/LIDER
+router.delete('/:id', requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) => {
   try {
     await prisma.cita.delete({ where: { id: Number(req.params.id) } });
     res.status(204).send();

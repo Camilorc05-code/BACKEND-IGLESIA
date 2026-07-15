@@ -104,7 +104,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/personas/:id — borrado lógico (no se pierde el historial)
-router.delete('/:id', requireRole('ADMIN', 'PASTOR'), async (req, res) => {
+router.delete('/:id', requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) => {
   try {
     await prisma.persona.update({
       where: { id: Number(req.params.id) },

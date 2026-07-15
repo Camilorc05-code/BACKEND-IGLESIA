@@ -20,11 +20,11 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/servicios — solo ADMIN/PASTOR
+// POST /api/servicios — solo ADMIN
 router.post(
   '/',
   requireAuth,
-  requireRole('ADMIN', 'PASTOR'),
+  requireRole('ADMIN'),
   [body('nombre').notEmpty(), body('diaSemana').notEmpty(), body('horaInicio').notEmpty()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -51,7 +51,7 @@ router.post(
 );
 
 // PUT /api/servicios/:id — reemplaza también la galería si se envía "imagenes"
-router.put('/:id', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res) => {
+router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   const { imagenes, ...datos } = req.body;
   try {
     if (imagenes) {
@@ -74,8 +74,8 @@ router.put('/:id', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res)
   }
 });
 
-// DELETE /api/servicios/:id
-router.delete('/:id', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res) => {
+// DELETE /api/servicios/:id — solo ADMIN
+router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
     await prisma.servicio.update({
       where: { id: Number(req.params.id) },
