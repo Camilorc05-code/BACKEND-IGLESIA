@@ -10,6 +10,7 @@ router.get('/', async (req, res) => {
   try {
     const servicios = await prisma.servicio.findMany({
       where: { activo: true },
+      include: { imagenes: { orderBy: { orden: 'asc' } } },
       orderBy: [{ diaSemana: 'asc' }, { horaInicio: 'asc' }],
     });
     res.json(servicios);
@@ -30,8 +31,17 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Datos inválidos', details: errors.array() });
     }
+    const { imagenes, ...datos } = req.body;
     try {
-      const servicio = await prisma.servicio.create({ data: req.body });
+      const servicio = await prisma.servicio.create({
+        data: {
+          ...datos,
+          imagenes: imagenes?.length
+            ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
+            : undefined,
+        },
+        include: { imagenes: true },
+      });
       res.status(201).json(servicio);
     } catch (err) {
       console.error(err);
@@ -40,12 +50,22 @@ router.post(
   }
 );
 
-// PUT /api/servicios/:id
+// PUT /api/servicios/:id — reemplaza también la galería si se envía "imagenes"
 router.put('/:id', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res) => {
+  const { imagenes, ...datos } = req.body;
   try {
+    if (imagenes) {
+      await prisma.servicioImagen.deleteMany({ where: { servicioId: Number(req.params.id) } });
+    }
     const servicio = await prisma.servicio.update({
       where: { id: Number(req.params.id) },
-      data: req.body,
+      data: {
+        ...datos,
+        imagenes: imagenes?.length
+          ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
+          : undefined,
+      },
+      include: { imagenes: { orderBy: { orden: 'asc' } } },
     });
     res.json(servicio);
   } catch (err) {

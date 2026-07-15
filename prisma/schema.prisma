@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -41,44 +41,58 @@ model Usuario {
 }
 
 model Persona {
-  id               Int       @id @default(autoincrement())
-  nombres          String
-  apellidos        String
-  tipoDocumento    String? // CC, TI, RC, CE
-  numeroDocumento  String?   
-  telefono         String?
-  email            String?
-  direccion        String?
-  fechaNacimiento  DateTime?
-  genero           String?
-  estadoCivil      String?
-  ministerio       String? // ej: Alabanza, Jóvenes, Niños, Damas, Varones
-  rolIglesia       String? // ej: Miembro, Líder, Diácono, Visitante
-  fechaIngreso     DateTime  @default(now())
-  fechaBautismo    DateTime?
-  notas            String?
-  activo           Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              Int       @id @default(autoincrement())
+  nombres         String
+  apellidos       String
+  tipoDocumento   String? // CC, TI, RC, CE
+  numeroDocumento String?
+  telefono        String?
+  email           String?
+  direccion       String?
+  fechaNacimiento DateTime?
+  genero          String?
+  estadoCivil     String?
+  ministerio      String? // ej: Alabanza, Jóvenes, Niños, Damas, Varones
+  rolIglesia      String? // ej: Miembro, Líder, Diácono, Visitante
+  fechaIngreso    DateTime  @default(now())
+  fechaBautismo   DateTime?
+  notas           String?
+  activo          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  citas            Cita[]
+  citas Cita[]
 
   @@map("personas")
 }
 
 model Servicio {
-  id           Int      @id @default(autoincrement())
-  nombre       String // ej: "Servicio Dominical", "Culto de Oración"
-  diaSemana    String // "Domingo", "Lunes", ... "Sábado"
-  horaInicio   String // "09:00"
-  horaFin      String?
-  lugar        String?
-  descripcion  String?
-  activo       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  nombre      String // ej: "Servicio Dominical", "Culto de Oración"
+  diaSemana   String // "Domingo", "Lunes", ... "Sábado"
+  horaInicio  String // "09:00"
+  horaFin     String?
+  lugar       String?
+  descripcion String?
+  imagenUrl   String? // imagen de portada
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  imagenes ServicioImagen[]
 
   @@map("servicios")
+}
+
+model ServicioImagen {
+  id         Int      @id @default(autoincrement())
+  servicioId Int
+  servicio   Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+  url        String
+  orden      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@map("servicio_imagenes")
 }
 
 model Evento {
@@ -90,7 +104,7 @@ model Evento {
   horaFin     String?
   lugar       String?
   imagenUrl   String? // imagen de portada
-  categoria   String  @default("Otro")
+  categoria   String   @default("Otro")
   // Categorías sugeridas: "Cumbre Ministerial", "Fiesta de Primicias",
   // "Juntos Bajo la Bendición de Dios", "Acción de Gracias",
   // "Ministerio M.I.A", "Ministerio M.J.P", "Vigilia", "Día del Padre",
@@ -98,7 +112,7 @@ model Evento {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  imagenes    EventoImagen[]
+  imagenes EventoImagen[]
 
   @@map("eventos")
 }
@@ -115,21 +129,21 @@ model EventoImagen {
 }
 
 model Cita {
-  id                    Int        @id @default(autoincrement())
-  personaId             Int?
-  persona               Persona?   @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  nombreSolicitante     String
-  telefonoSolicitante   String
-  emailSolicitante      String?
-  pastorId              Int
-  pastor                Usuario    @relation("PastorCitas", fields: [pastorId], references: [id])
-  fecha                 DateTime
-  hora                  String
-  motivo                String?
-  estado                EstadoCita @default(PENDIENTE)
-  notasInternas         String?
-  createdAt             DateTime   @default(now())
-  updatedAt              DateTime  @updatedAt
+  id                  Int        @id @default(autoincrement())
+  personaId           Int?
+  persona             Persona?   @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  nombreSolicitante   String
+  telefonoSolicitante String
+  emailSolicitante    String?
+  pastorId            Int
+  pastor              Usuario    @relation("PastorCitas", fields: [pastorId], references: [id])
+  fecha               DateTime
+  hora                String
+  motivo              String?
+  estado              EstadoCita @default(PENDIENTE)
+  notasInternas       String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
   @@map("citas")
 }
