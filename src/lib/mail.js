@@ -1,37 +1,43 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT) || 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-});
+const BREVO_API = 'https://api.brevo.com/v3/smtp/email';
 
 /**
- * Envía un correo electrónico.
+ * Envía un correo electrónico por Brevo (HTTPS — funciona en Render).
  * @param {{ to: string, subject: string, html: string }} opciones
  */
 async function enviarCorreo({ to, subject, html }) {
-  if (!process.env.SMTP_USER) {
-    console.warn('[mail] SMTP_USER no configurado — correo NO enviado a', to);
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('[mail] BREVO_API_KEY no configurado — correo NO enviado a', to);
     return null;
   }
 
+  const senderEmail = process.env.SMTP_FROM_EMAIL || 'jhojancamilorodriguez2017@gmail.com';
+  const senderName = process.env.SMTP_FROM_NAME || 'Misión Panamericana';
+
   try {
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"Misión Panamericana" <${process.env.SMTP_USER}>`,
-      to,
-      subject,
-      html,
+    const res = await fetch(BREVO_API, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: { email: senderEmail, name: senderName },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
 
-    console.log('[mail] ✅ Correo enviado a', to, '| ID:', info.messageId);
-    return info;
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error('[mail] ❌ Error enviando correo a', to, ':', data.message || JSON.stringify(data));
+      return null;
+    }
+
+    console.log('[mail] ✅ Correo enviado a', to, '| ID:', data.messageId);
+    return data;
   } catch (err) {
     console.error('[mail] ❌ Error enviando correo a', to, ':', err.message);
     return null;
@@ -48,8 +54,6 @@ function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo 
     month: 'long',
     day: 'numeric',
   });
-
-  const horaFormato = hora; // ya viene en formato HH:MM
 
   return `
     <!DOCTYPE html>
@@ -71,7 +75,6 @@ function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo 
         .detail-value { font-size: 14px; color: #0A2A57; font-weight: 500; }
         .footer { padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; }
         .footer p { font-size: 11px; color: #94a3b8; margin: 0; }
-        .btn { display: inline-block; background: #024293; color: white; text-decoration: none; padding: 12px 24px; border-radius: 999px; font-weight: 600; font-size: 14px; margin-top: 16px; }
       </style>
     </head>
     <body>
@@ -92,7 +95,7 @@ function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo 
             </div>
             <div class="detail-row">
               <span class="detail-label">Hora</span>
-              <span class="detail-value">${horaFormato}</span>
+              <span class="detail-value">${hora}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Persona</span>
