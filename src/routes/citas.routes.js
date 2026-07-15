@@ -53,8 +53,6 @@ router.get('/ocupados', async (req, res) => {
         hora: true,
         pastorId: true,
         estado: true,
-        nombreSolicitante: true,
-        pastor: { select: { nombre: true } },
       },
       orderBy: { fecha: 'asc' },
     });
@@ -133,6 +131,42 @@ router.post(
 
 // A partir de aquí, todo requiere estar autenticado (equipo pastoral)
 router.use(requireAuth);
+
+// GET /api/citas/recordatorios — citas próximas (48h) que aún no tienen recordatorio enviado
+router.get('/recordatorios', async (req, res) => {
+  const ahora = new Date();
+  const en48h = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
+
+  try {
+    const citas = await prisma.cita.findMany({
+      where: {
+        estado: { in: ['PENDIENTE', 'CONFIRMADA'] },
+        recordatorioEnviado: false,
+        fecha: { gte: ahora, lte: en48h },
+      },
+      include: { pastor: { select: { id: true, nombre: true, email: true } } },
+      orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
+    });
+    res.json(citas);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener recordatorios.' });
+  }
+});
+
+// PUT /api/citas/:id/recordatorio — marcar recordatorio como enviado
+router.put('/:id/recordatorio', async (req, res) => {
+  try {
+    const cita = await prisma.cita.update({
+      where: { id: Number(req.params.id) },
+      data: { recordatorioEnviado: true },
+    });
+    res.json(cita);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al marcar recordatorio.' });
+  }
+});
 
 // GET /api/citas?estado=&pastorId=&desde=&hasta=
 router.get('/', async (req, res) => {

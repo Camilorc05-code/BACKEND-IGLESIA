@@ -141,6 +141,7 @@ model Cita {
   hora                String
   motivo              String?
   estado              EstadoCita @default(PENDIENTE)
+  recordatorioEnviado Boolean  @default(false)
   notasInternas       String?
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
