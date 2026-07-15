@@ -164,68 +164,9 @@ router.post(
   }
 );
 
-// A partir de aquí, todo requiere estar autenticado (equipo pastoral)
-router.use(requireAuth);
-
-// GET /api/citas/recordatorios — citas próximas (48h) que aún no tienen recordatorio enviado
-router.get('/recordatorios', async (req, res) => {
-  const ahora = new Date();
-  const en48h = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
-
-  try {
-    const citas = await prisma.cita.findMany({
-      where: {
-        estado: { in: ['PENDIENTE', 'CONFIRMADA'] },
-        recordatorioEnviado: false,
-        fecha: { gte: ahora, lte: en48h },
-      },
-      include: { pastor: { select: { id: true, nombre: true, email: true } } },
-      orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
-    });
-    res.json(citas);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al obtener recordatorios.' });
-  }
-});
-
-// PUT /api/citas/:id/recordatorio — marcar recordatorio como enviado + enviar correo al pastor
-router.put('/:id/recordatorio', async (req, res) => {
-  try {
-    const cita = await prisma.cita.update({
-      where: { id: Number(req.params.id) },
-      data: { recordatorioEnviado: true },
-      include: { pastor: { select: { id: true, nombre: true, email: true } } },
-    });
-
-    // Enviar correo de recordatorio al pastor/líder
-    if (cita.pastor?.email) {
-      const html = plantillaRecordatorio({
-        pastorNombre: cita.pastor.nombre,
-        solicitante: cita.nombreSolicitante,
-        fecha: cita.fecha,
-        hora: cita.hora,
-        motivo: cita.motivo,
-      });
-
-      enviarCorreo({
-        to: cita.pastor.email,
-        subject: `Recordatorio: Cita pastoral con ${cita.nombreSolicitante}`,
-        html,
-      }).catch((err) => console.error('[mail] Error enviando recordatorio:', err.message));
-    }
-
-    res.json(cita);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al marcar recordatorio.' });
-  }
-});
-
-// POST /api/citas/auto-recordatorios — envía recordatorios automáticos para citas de las próximas 48h
-// Se puede llamar con un cron job cada pocas horas
+// GET /api/citas/auto-recordatorios — envía recordatorios automáticos (UptimeRobot / cron)
+// ANTES de requireAuth para que UptimeRobot no reciba 401
 router.get('/auto-recordatorios', async (req, res) => {
-  // Seguridad: verificar token en query string
   const token = req.query.token;
   if (!token || token !== process.env.REMINDER_SECRET) {
     return res.status(401).json({ error: 'Token inválido.' });
@@ -287,6 +228,64 @@ router.get('/auto-recordatorios', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al procesar recordatorios.' });
+  }
+});
+
+// A partir de aquí, todo requiere estar autenticado (equipo pastoral)
+router.use(requireAuth);
+
+// GET /api/citas/recordatorios — citas próximas (48h) que aún no tienen recordatorio enviado
+router.get('/recordatorios', async (req, res) => {
+  const ahora = new Date();
+  const en48h = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
+
+  try {
+    const citas = await prisma.cita.findMany({
+      where: {
+        estado: { in: ['PENDIENTE', 'CONFIRMADA'] },
+        recordatorioEnviado: false,
+        fecha: { gte: ahora, lte: en48h },
+      },
+      include: { pastor: { select: { id: true, nombre: true, email: true } } },
+      orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
+    });
+    res.json(citas);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener recordatorios.' });
+  }
+});
+
+// PUT /api/citas/:id/recordatorio — marcar recordatorio como enviado + enviar correo al pastor
+router.put('/:id/recordatorio', async (req, res) => {
+  try {
+    const cita = await prisma.cita.update({
+      where: { id: Number(req.params.id) },
+      data: { recordatorioEnviado: true },
+      include: { pastor: { select: { id: true, nombre: true, email: true } } },
+    });
+
+    // Enviar correo de recordatorio al pastor/líder
+    if (cita.pastor?.email) {
+      const html = plantillaRecordatorio({
+        pastorNombre: cita.pastor.nombre,
+        solicitante: cita.nombreSolicitante,
+        fecha: cita.fecha,
+        hora: cita.hora,
+        motivo: cita.motivo,
+      });
+
+      enviarCorreo({
+        to: cita.pastor.email,
+        subject: `Recordatorio: Cita pastoral con ${cita.nombreSolicitante}`,
+        html,
+      }).catch((err) => console.error('[mail] Error enviando recordatorio:', err.message));
+    }
+
+    res.json(cita);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al marcar recordatorio.' });
   }
 });
 
