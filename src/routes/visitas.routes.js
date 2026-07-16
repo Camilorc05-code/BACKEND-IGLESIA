@@ -38,36 +38,41 @@ router.post(
     try {
       const { nombres, apellidos, email, telefono, adicional, asisteOtraIglesia, desearLlamada } = req.body;
 
-      const visita = await prisma.visita.create({
-        data: {
-          nombres,
-          apellidos,
-          email: email || null,
-          telefono,
-          adicional: adicional || null,
-          asisteOtraIglesia,
-          desearLlamada,
-        },
+      // Usar transacción para crear Visita + Persona juntas
+      const result = await prisma.$transaction(async (tx) => {
+        const visita = await tx.visita.create({
+          data: {
+            nombres,
+            apellidos,
+            email: email || null,
+            telefono,
+            adicional: adicional || null,
+            asisteOtraIglesia,
+            desearLlamada,
+          },
+        });
+
+        const notasParts = [];
+        if (adicional) notasParts.push(adicional);
+        if (asisteOtraIglesia === 'Si') notasParts.push('Asiste a otra iglesia');
+        if (desearLlamada === 'Si') notasParts.push('Desea que lo llamen');
+
+        const persona = await tx.persona.create({
+          data: {
+            nombres,
+            apellidos,
+            telefono,
+            email: email || null,
+            rolIglesia: 'Visitante',
+            notas: notasParts.length > 0 ? notasParts.join(' | ') : null,
+          },
+        });
+
+        return { visita, persona };
       });
 
-      // Crear también una Persona para que aparezca en el listado general
-      const notasParts = [];
-      if (adicional) notasParts.push(adicional);
-      if (asisteOtraIglesia === 'Si') notasParts.push('Asiste a otra iglesia');
-      if (desearLlamada === 'Si') notasParts.push('Desea que lo llamen');
-
-      await prisma.persona.create({
-        data: {
-          nombres,
-          apellidos,
-          telefono,
-          email: email || null,
-          rolIglesia: 'Visitante',
-          notas: notasParts.length > 0 ? notasParts.join(' | ') : null,
-        },
-      });
-
-      res.status(201).json({ ok: true, id: visita.id });
+      console.log('[visitas] ✅ Visita y Persona creadas:', result.visita.id, result.persona.id);
+      res.status(201).json({ ok: true, id: result.visita.id });
 
       // Notificar a usuarios ADMIN por correo (en background, sin bloquear respuesta)
       prisma.usuario.findMany({
@@ -100,6 +105,17 @@ router.get('/', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Error al obtener visitas:', err);
     res.status(500).json({ error: 'Error al obtener visitas.' });
+  }
+});
+
+// DELETE /api/visitas/:id — eliminar visita (requiere auth)
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    await prisma.visita.delete({ where: { id: Number(req.params.id) } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error al eliminar visita:', err);
+    res.status(500).json({ error: 'Error al eliminar visita.' });
   }
 });
 
