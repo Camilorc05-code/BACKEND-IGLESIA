@@ -81,8 +81,22 @@ router.post(
       }
 
       const data = { ...req.body };
-      if (data.fechaNacimiento === '' || data.fechaNacimiento === undefined) data.fechaNacimiento = null;
-      if (data.fechaBautismo === '' || data.fechaBautismo === undefined) data.fechaBautismo = null;
+
+      // Convertir strings de fecha a objetos Date
+      for (const key of ['fechaNacimiento', 'fechaBautismo', 'fechaIngreso']) {
+        const val = data[key];
+        if (!val || val === '') {
+          data[key] = key === 'fechaIngreso' ? new Date() : null;
+        } else {
+          data[key] = new Date(val);
+        }
+      }
+
+      // Strings vacíos → null
+      for (const key of ['tipoDocumento', 'numeroDocumento', 'email', 'direccion', 'ministerio', 'rolIglesia', 'notas', 'genero', 'estadoCivil']) {
+        if (data[key] === '') data[key] = null;
+      }
+
       delete data.id;
       delete data.createdAt;
       delete data.updatedAt;
@@ -99,12 +113,23 @@ router.post(
 // PUT /api/personas/:id
 router.put('/:id', async (req, res) => {
   try {
-    // Sanitizar: convertir strings vacíos a null en campos fecha
     const data = { ...req.body };
-    if (data.fechaNacimiento === '' || data.fechaNacimiento === undefined) data.fechaNacimiento = null;
-    if (data.fechaBautismo === '' || data.fechaBautismo === undefined) data.fechaBautismo = null;
-    if (data.fechaIngreso === '' || data.fechaIngreso === undefined) delete data.fechaIngreso;
-    // No permitir cambiar id o createdAt
+
+    // Convertir strings de fecha a objetos Date, o null si están vacíos
+    for (const key of ['fechaNacimiento', 'fechaBautismo', 'fechaIngreso']) {
+      const val = data[key];
+      if (!val || val === '') {
+        data[key] = key === 'fechaIngreso' ? new Date() : null;
+      } else {
+        data[key] = new Date(val);
+      }
+    }
+
+    // Strings vacíos → null
+    for (const key of ['tipoDocumento', 'numeroDocumento', 'email', 'direccion', 'ministerio', 'rolIglesia', 'notas', 'genero', 'estadoCivil']) {
+      if (data[key] === '') data[key] = null;
+    }
+
     delete data.id;
     delete data.createdAt;
     delete data.updatedAt;
