@@ -16,6 +16,8 @@ const CATEGORIAS = [
   'Vigilia',
   'Día del Padre',
   'Día de la Madre',
+  'Día del Hombre',
+  'Día de la Mujer',
   'Otro',
 ];
 
