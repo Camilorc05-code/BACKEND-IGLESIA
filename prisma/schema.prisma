@@ -56,6 +56,7 @@ model Persona {
   rolIglesia      String? // ej: Miembro, Líder, Diácono, Visitante
   fechaIngreso    DateTime  @default(now())
   bautizado       Boolean   @default(false)
+  fechaBautismo   DateTime?
   notas           String?
   activo          Boolean   @default(true)
   createdAt       DateTime  @default(now())

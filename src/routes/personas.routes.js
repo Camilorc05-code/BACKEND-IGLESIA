@@ -83,7 +83,7 @@ router.post(
       const data = { ...req.body };
 
       // Convertir strings de fecha a objetos Date
-      for (const key of ['fechaNacimiento', 'fechaIngreso']) {
+      for (const key of ['fechaNacimiento', 'fechaBautismo', 'fechaIngreso']) {
         const val = data[key];
         if (!val || val === '') {
           data[key] = key === 'fechaIngreso' ? new Date() : null;
@@ -121,7 +121,7 @@ router.put('/:id', async (req, res) => {
     const data = { ...req.body };
 
     // Convertir strings de fecha a objetos Date, o null si están vacíos
-    for (const key of ['fechaNacimiento', 'fechaIngreso']) {
+    for (const key of ['fechaNacimiento', 'fechaBautismo', 'fechaIngreso']) {
       const val = data[key];
       if (!val || val === '') {
         data[key] = key === 'fechaIngreso' ? new Date() : null;
