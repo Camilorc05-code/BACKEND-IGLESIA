@@ -21,13 +21,12 @@ const CATEGORIAS = [
 
 /**
  * Convierte una fecha "YYYY-MM-DD" (del input type="date") a ISO DateTime completo.
- * Si ya es ISO completo, la retorna tal cual.
+ * Usa UTC-5 (hora Colombia) para que la fecha se muestre correctamente.
  */
 function normalizarFecha(fecha) {
   if (!fecha) return fecha;
-  // Si es solo "YYYY-MM-DD", agregar hora midnight en UTC
   if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    return new Date(fecha + 'T00:00:00.000Z').toISOString();
+    return new Date(fecha + 'T05:00:00.000Z').toISOString();
   }
   return fecha;
 }
