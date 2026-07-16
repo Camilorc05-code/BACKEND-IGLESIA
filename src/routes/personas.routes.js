@@ -83,13 +83,18 @@ router.post(
       const data = { ...req.body };
 
       // Convertir strings de fecha a objetos Date
-      for (const key of ['fechaNacimiento', 'fechaBautismo', 'fechaIngreso']) {
+      for (const key of ['fechaNacimiento', 'fechaIngreso']) {
         const val = data[key];
         if (!val || val === '') {
           data[key] = key === 'fechaIngreso' ? new Date() : null;
         } else {
           data[key] = new Date(val);
         }
+      }
+
+      // Asegurar que bautizado sea boolean
+      if (typeof data.bautizado === 'string') {
+        data.bautizado = data.bautizado === 'true' || data.bautizado === 'Si';
       }
 
       // Strings vacíos → null
@@ -116,13 +121,18 @@ router.put('/:id', async (req, res) => {
     const data = { ...req.body };
 
     // Convertir strings de fecha a objetos Date, o null si están vacíos
-    for (const key of ['fechaNacimiento', 'fechaBautismo', 'fechaIngreso']) {
+    for (const key of ['fechaNacimiento', 'fechaIngreso']) {
       const val = data[key];
       if (!val || val === '') {
         data[key] = key === 'fechaIngreso' ? new Date() : null;
       } else {
         data[key] = new Date(val);
       }
+    }
+
+    // Asegurar que bautizado sea boolean
+    if (typeof data.bautizado === 'string') {
+      data.bautizado = data.bautizado === 'true' || data.bautizado === 'Si';
     }
 
     // Strings vacíos → null

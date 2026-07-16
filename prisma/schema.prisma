@@ -55,7 +55,7 @@ model Persona {
   ministerio      String? // ej: Alabanza, Jóvenes, Niños, Damas, Varones
   rolIglesia      String? // ej: Miembro, Líder, Diácono, Visitante
   fechaIngreso    DateTime  @default(now())
-  fechaBautismo   DateTime?
+  bautizado       Boolean   @default(false)
   notas           String?
   activo          Boolean   @default(true)
   createdAt       DateTime  @default(now())
