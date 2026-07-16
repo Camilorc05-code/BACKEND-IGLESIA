@@ -50,6 +50,23 @@ router.post(
         },
       });
 
+      // Crear también una Persona para que aparezca en el listado general
+      const notasParts = [];
+      if (adicional) notasParts.push(adicional);
+      if (asisteOtraIglesia === 'Si') notasParts.push('Asiste a otra iglesia');
+      if (desearLlamada === 'Si') notasParts.push('Desea que lo llamen');
+
+      await prisma.persona.create({
+        data: {
+          nombres,
+          apellidos,
+          telefono,
+          email: email || null,
+          rolIglesia: 'Visitante',
+          notas: notasParts.length > 0 ? notasParts.join(' | ') : null,
+        },
+      });
+
       res.status(201).json({ ok: true, id: visita.id });
 
       // Notificar a usuarios ADMIN por correo (en background, sin bloquear respuesta)
