@@ -48,6 +48,7 @@ model Persona {
   numeroDocumento String?
   telefono        String?
   email           String?
+  barrio          String?
   direccion       String?
   fechaNacimiento DateTime?
   genero          String?
@@ -156,6 +157,8 @@ model Visita {
   apellidos          String
   email              String?
   telefono           String
+  barrio             String?
+  direccion          String?
   adicional          String?  // petición de oración / mensaje
   asisteOtraIglesia  String   // "Si" / "No"
   desearLlamada      String   // "Si" / "No"

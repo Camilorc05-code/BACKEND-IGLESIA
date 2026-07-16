@@ -98,7 +98,7 @@ router.post(
       }
 
       // Strings vacíos → null
-      for (const key of ['tipoDocumento', 'numeroDocumento', 'email', 'direccion', 'ministerio', 'rolIglesia', 'notas', 'genero', 'estadoCivil']) {
+      for (const key of ['tipoDocumento', 'numeroDocumento', 'email', 'barrio', 'direccion', 'ministerio', 'rolIglesia', 'notas', 'genero', 'estadoCivil']) {
         if (data[key] === '') data[key] = null;
       }
 
@@ -120,6 +120,19 @@ router.put('/:id', async (req, res) => {
   try {
     const data = { ...req.body };
 
+    // Validar duplicado de documento (excluyendo la misma persona)
+    if (data.numeroDocumento) {
+      const existe = await prisma.persona.findFirst({
+        where: {
+          numeroDocumento: data.numeroDocumento,
+          id: { not: Number(req.params.id) },
+        },
+      });
+      if (existe) {
+        return res.status(409).json({ error: 'Ya existe otra persona con ese número de documento.' });
+      }
+    }
+
     // Convertir strings de fecha a objetos Date, o null si están vacíos
     for (const key of ['fechaNacimiento', 'fechaBautismo', 'fechaIngreso']) {
       const val = data[key];
@@ -136,7 +149,7 @@ router.put('/:id', async (req, res) => {
     }
 
     // Strings vacíos → null
-    for (const key of ['tipoDocumento', 'numeroDocumento', 'email', 'direccion', 'ministerio', 'rolIglesia', 'notas', 'genero', 'estadoCivil']) {
+    for (const key of ['tipoDocumento', 'numeroDocumento', 'email', 'barrio', 'direccion', 'ministerio', 'rolIglesia', 'notas', 'genero', 'estadoCivil']) {
       if (data[key] === '') data[key] = null;
     }
 
