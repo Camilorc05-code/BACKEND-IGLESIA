@@ -45,6 +45,17 @@ async function enviarCorreo({ to, subject, html }) {
 }
 
 /**
+ * Convierte hora "HH:MM" (24h) a formato 12 horas con AM/PM.
+ */
+function formatTime12h(hora) {
+  if (!hora) return '';
+  const [h, m] = hora.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const horas12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${horas12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+/**
  * Plantilla HTML para recordatorio de cita pastoral.
  */
 function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo }) {
@@ -54,6 +65,8 @@ function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo 
     month: 'long',
     day: 'numeric',
   });
+
+  const horaFormato = formatTime12h(hora);
 
   return `
     <!DOCTYPE html>
@@ -95,7 +108,7 @@ function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo 
             </div>
             <div class="detail-row">
               <span class="detail-label">Hora</span>
-              <span class="detail-value">${hora}</span>
+              <span class="detail-value">${horaFormato}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Persona</span>
@@ -120,4 +133,4 @@ function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo 
   `;
 }
 
-module.exports = { enviarCorreo, plantillaRecordatorio };
+module.exports = { enviarCorreo, plantillaRecordatorio, formatTime12h };

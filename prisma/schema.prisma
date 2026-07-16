@@ -148,3 +148,17 @@ model Cita {
 
   @@map("citas")
 }
+
+model Visita {
+  id                 Int      @id @default(autoincrement())
+  nombres            String
+  apellidos          String
+  email              String?
+  telefono           String
+  adicional          String?  // petición de oración / mensaje
+  asisteOtraIglesia  String   // "Si" / "No"
+  desearLlamada      String   // "Si" / "No"
+  createdAt          DateTime @default(now())
+
+  @@map("visitas")
+}

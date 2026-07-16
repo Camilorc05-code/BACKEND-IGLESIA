@@ -5,6 +5,15 @@ const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { enviarCorreo, plantillaRecordatorio } = require('../lib/mail');
 
+// Helper local para formato 12h (reutiliza la lógica de mail.js)
+function formatTime12h(hora) {
+  if (!hora) return '';
+  const [h, m] = hora.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const horas12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${horas12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 const router = express.Router();
 
 // Evita spam en el formulario público de citas: máx 5 solicitudes cada 15 min por IP
@@ -136,7 +145,7 @@ router.post(
             <p style="font-size:15px;color:#334155;margin:0 0 16px">Hola <strong>${cita.pastor.nombre}</strong>, se ha agendado una nueva cita contigo:</p>
             <div class="detail">
               <div class="detail-row"><span class="detail-label">Fecha</span><span class="detail-value">${fechaFormato}</span></div>
-              <div class="detail-row"><span class="detail-label">Hora</span><span class="detail-value">${hora}</span></div>
+              <div class="detail-row"><span class="detail-label">Hora</span><span class="detail-value">${formatTime12h(hora)}</span></div>
               <div class="detail-row"><span class="detail-label">Persona</span><span class="detail-value">${nombreSolicitante}</span></div>
               <div class="detail-row"><span class="detail-label">Teléfono</span><span class="detail-value">${telefonoSolicitante}</span></div>
               ${motivo ? `<div class="detail-row"><span class="detail-label">Motivo</span><span class="detail-value">${motivo}</span></div>` : ''}

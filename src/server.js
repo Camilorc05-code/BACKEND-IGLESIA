@@ -7,6 +7,7 @@ const personasRoutes = require('./routes/personas.routes');
 const serviciosRoutes = require('./routes/servicios.routes');
 const eventosRoutes = require('./routes/eventos.routes');
 const citasRoutes = require('./routes/citas.routes');
+const visitasRoutes = require('./routes/visitas.routes');
 const uploadRoutes = require('./routes/upload.routes');
 
 const app = express();
@@ -46,6 +47,7 @@ app.use('/api/personas', personasRoutes);
 app.use('/api/servicios', serviciosRoutes);
 app.use('/api/eventos', eventosRoutes);
 app.use('/api/citas', citasRoutes);
+app.use('/api/visitas', visitasRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Manejo de rutas no encontradas
