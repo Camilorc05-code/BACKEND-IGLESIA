@@ -80,7 +80,14 @@ router.post(
         }
       }
 
-      const persona = await prisma.persona.create({ data: req.body });
+      const data = { ...req.body };
+      if (data.fechaNacimiento === '' || data.fechaNacimiento === undefined) data.fechaNacimiento = null;
+      if (data.fechaBautismo === '' || data.fechaBautismo === undefined) data.fechaBautismo = null;
+      delete data.id;
+      delete data.createdAt;
+      delete data.updatedAt;
+
+      const persona = await prisma.persona.create({ data });
       res.status(201).json(persona);
     } catch (err) {
       console.error(err);
@@ -92,9 +99,19 @@ router.post(
 // PUT /api/personas/:id
 router.put('/:id', async (req, res) => {
   try {
+    // Sanitizar: convertir strings vacíos a null en campos fecha
+    const data = { ...req.body };
+    if (data.fechaNacimiento === '' || data.fechaNacimiento === undefined) data.fechaNacimiento = null;
+    if (data.fechaBautismo === '' || data.fechaBautismo === undefined) data.fechaBautismo = null;
+    if (data.fechaIngreso === '' || data.fechaIngreso === undefined) delete data.fechaIngreso;
+    // No permitir cambiar id o createdAt
+    delete data.id;
+    delete data.createdAt;
+    delete data.updatedAt;
+
     const persona = await prisma.persona.update({
       where: { id: Number(req.params.id) },
-      data: req.body,
+      data,
     });
     res.json(persona);
   } catch (err) {
