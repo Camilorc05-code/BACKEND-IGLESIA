@@ -133,4 +133,82 @@ function plantillaRecordatorio({ pastorNombre, solicitante, fecha, hora, motivo 
   `;
 }
 
-module.exports = { enviarCorreo, plantillaRecordatorio, formatTime12h };
+/**
+ * Plantilla HTML para notificación de nueva visita registrada.
+ */
+function plantillaNuevaVisita({ nombres, apellidos, telefono, email, adicional, asisteOtraIglesia, desearLlamada }) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .header { background: linear-gradient(135deg, #024293, #3E52C3); padding: 28px 24px; text-align: center; }
+        .header h1 { color: #FFCD02; font-size: 20px; margin: 0 0 4px; }
+        .header p { color: rgba(255,255,255,0.8); font-size: 13px; margin: 0; }
+        .body { padding: 24px; }
+        .badge { display: inline-block; background: #FFCD02; color: #0A2A57; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail { margin: 16px 0; padding: 16px; background: #f1f5fb; border-radius: 12px; }
+        .detail-row { display: flex; margin-bottom: 8px; }
+        .detail-row:last-child { margin-bottom: 0; }
+        .detail-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; min-width: 100px; }
+        .detail-value { font-size: 14px; color: #0A2A57; font-weight: 500; }
+        .footer { padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; }
+        .footer p { font-size: 11px; color: #94a3b8; margin: 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Misión Panamericana</h1>
+          <p>Centro de Fe y Esperanza</p>
+        </div>
+        <div class="body">
+          <p style="margin:0 0 8px"><span class="badge">Nueva visita</span></p>
+          <p style="font-size:15px; color:#334155; margin:0 0 16px">
+            Se ha registrado una nueva persona en el sitio web:
+          </p>
+          <div class="detail">
+            <div class="detail-row">
+              <span class="detail-label">Nombre</span>
+              <span class="detail-value">${nombres} ${apellidos}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Celular</span>
+              <span class="detail-value">${telefono}</span>
+            </div>
+            ${email ? `
+            <div class="detail-row">
+              <span class="detail-label">Correo</span>
+              <span class="detail-value">${email}</span>
+            </div>` : ''}
+            <div class="detail-row">
+              <span class="detail-label">Asiste otra iglesia</span>
+              <span class="detail-value">${asisteOtraIglesia === 'Si' ? 'Sí' : 'No'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Desea llamada</span>
+              <span class="detail-value">${desearLlamada === 'Si' ? 'Sí' : 'No'}</span>
+            </div>
+            ${adicional ? `
+            <div class="detail-row">
+              <span class="detail-label">Mensaje</span>
+              <span class="detail-value">${adicional}</span>
+            </div>` : ''}
+          </div>
+          <p style="font-size:13px; color:#64748b; margin:16px 0 0">
+            Puedes ver todos los registros en el panel de administración → Visitas.
+          </p>
+        </div>
+        <div class="footer">
+          <p>Este es un correo automático de notificación. No respondas a este mensaje.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+module.exports = { enviarCorreo, plantillaRecordatorio, plantillaNuevaVisita, formatTime12h };
