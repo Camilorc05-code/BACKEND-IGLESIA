@@ -1,39 +1,46 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// POST /api/checkin/buscar — buscar persona por teléfono (sin auth)
+// POST /api/checkin/buscar — buscar personas por nombre (sin auth)
 router.post('/buscar', async (req, res) => {
-  const { telefono } = req.body;
-  if (!telefono) return res.status(400).json({ error: 'Teléfono requerido.' });
+  const { nombre } = req.body;
+  if (!nombre || nombre.trim().length < 2) {
+    return res.status(400).json({ error: 'Escribe al menos 2 letras.' });
+  }
 
-  const tel = telefono.replace(/\s/g, '').replace(/\D/g, '');
+  const termino = nombre.trim().toLowerCase();
 
   try {
-    const persona = await prisma.persona.findFirst({
+    const personas = await prisma.persona.findMany({
       where: {
-        telefono: { contains: tel },
         activo: true,
+        OR: [
+          { nombres: { contains: termino, mode: 'insensitive' } },
+          { apellidos: { contains: termino, mode: 'insensitive' } },
+        ],
       },
       select: {
         id: true,
         nombres: true,
         apellidos: true,
-        telefono: true,
+        numeroDocumento: true,
         rolIglesia: true,
         ministerio: true,
       },
+      orderBy: { apellidos: 'asc' },
+      take: 20,
     });
 
-    if (!persona) {
-      return res.status(404).json({ error: 'No encontramos tu número. Acércate a un líder para registrarte.' });
+    if (personas.length === 0) {
+      return res.status(404).json({ error: 'No encontramos a nadie con ese nombre.' });
     }
 
-    res.json(persona);
+    res.json(personas);
   } catch (err) {
-    console.error('[checkin] Error buscando persona:', err);
+    console.error('[checkin] Error buscando personas:', err);
     res.status(500).json({ error: 'Error al buscar.' });
   }
 });
@@ -65,7 +72,7 @@ router.post('/registrar', async (req, res) => {
       return res.json({
         ok: true,
         duplicate: true,
-        mensaje: `${persona.nombres} ya está registrado para este servicio.`,
+        mensaje: `${persona.nombres} ${persona.apellidos} ya está registrado para este servicio.`,
         persona: { id: persona.id, nombres: persona.nombres, apellidos: persona.apellidos },
       });
     }
@@ -95,8 +102,8 @@ router.post('/registrar', async (req, res) => {
   }
 });
 
-// GET /api/checkin/hoy — ver asistencia de hoy (admin)
-router.get('/hoy', requireAuth, async (req, res) => {
+// GET /api/checkin/hoy — ver asistencia de hoy (admin y pastor)
+router.get('/hoy', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res) => {
   try {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -105,7 +112,7 @@ router.get('/hoy', requireAuth, async (req, res) => {
 
     const asistencias = await prisma.asistencia.findMany({
       where: { fecha: { gte: hoy, lt: manana } },
-      include: { persona: { select: { id: true, nombres: true, apellidos: true, telefono: true, ministerio: true } } },
+      include: { persona: { select: { id: true, nombres: true, apellidos: true, telefono: true, ministerio: true, rolIglesia: true } } },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -116,14 +123,14 @@ router.get('/hoy', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/checkin/historial — ver historial de asistencia (admin)
-router.get('/historial', requireAuth, async (req, res) => {
+// GET /api/checkin/historial — ver historial de asistencia (admin y pastor)
+router.get('/historial', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res) => {
   const { page = 1, limit = 50 } = req.query;
 
   try {
     const [asistencias, total] = await Promise.all([
       prisma.asistencia.findMany({
-        include: { persona: { select: { id: true, nombres: true, apellidos: true, telefono: true } } },
+        include: { persona: { select: { id: true, nombres: true, apellidos: true, telefono: true, ministerio: true } } },
         orderBy: { fecha: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
