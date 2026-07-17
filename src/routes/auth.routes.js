@@ -131,4 +131,23 @@ router.put('/usuarios/:id/toggle', requireAuth, requireRole('ADMIN'), async (req
   }
 });
 
+// DELETE /api/auth/usuarios/:id — eliminar usuario (solo ADMIN)
+router.delete('/usuarios/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (id === req.usuario.id) {
+      return res.status(400).json({ error: 'No puedes eliminar tu propio usuario.' });
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { id } });
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    await prisma.usuario.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar usuario.' });
+  }
+});
+
 module.exports = router;
