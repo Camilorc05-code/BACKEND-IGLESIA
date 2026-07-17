@@ -1,73 +1,70 @@
-# Backend — Iglesia Misión Panamericana Centro de Fe y Esperanza
+# Backend — Misión Panamericana
 
-API REST en Node.js + Express + Prisma + PostgreSQL.
+API para el sitio web de la iglesia. Node.js, Express, Prisma y PostgreSQL (Supabase).
 
-## Módulos incluidos
-- **Auth**: login con JWT, roles `ADMIN`, `PASTOR`, `LIDER`.
-- **Personas**: CRUD de la base de datos de feligreses (requiere login).
-- **Servicios**: horarios de cultos — lectura pública, edición solo staff.
-- **Eventos**: eventos realizados/próximos — lectura pública, edición staff.
-- **Citas**: cualquier visitante puede solicitar cita con un pastor (formulario público, con límite anti-spam); el staff gestiona/confirma desde el panel.
+## Qué maneja
 
-## 1. Configurar la base de datos (Supabase — gratis)
+- **Auth**: login con JWT. Tres roles: ADMIN, PASTOR, LIDER.
+- **Personas**: base de datos de feligreses con búsqueda y paginación.
+- **Servicios**: horarios de cultos. Lectura pública, edición solo staff.
+- **Eventos**: próximos y pasados, con galería de fotos. Lectura pública, edición staff.
+- **Citas**: cualquier visitante agenda cita con un pastor. Staff confirma o cancela desde el panel.
+- **Usuarios**: crear, activar/desactivar y eliminar usuarios del sistema (solo ADMIN).
 
-1. Crea una cuenta en https://supabase.com (login con GitHub, sin tarjeta).
-2. "New Project" → pon un nombre (ej: `iglesia-mision-panamericana`) y una contraseña segura para la DB (guárdala).
-3. Espera a que aprovisione el proyecto (~2 min).
-4. Ve a **Settings → Database → Connection string → URI**, copia la cadena y reemplaza `[YOUR-PASSWORD]` por la contraseña que pusiste.
-5. Para producción usa el connection string de **Connection pooling** (puerto 6543) — es el recomendado para hosting serverless/Render.
+## Configurar la BD en Supabase
 
-## 2. Configurar el proyecto localmente
+1. Crear cuenta en https://supabase.com (se puede con GitHub, gratis).
+2. New Project → nombre y contraseña para la DB.
+3. Esperar a que esté listo (~2 min).
+4. Ir a Settings → Database → Connection string → URI. Copiar la cadena y reemplazar `[YOUR-PASSWORD]`.
+5. Para producción usar el connection pooling (puerto 6543).
+
+## Correr local
 
 ```bash
-cd backend
 cp .env.example .env
-# Edita .env y pega tu DATABASE_URL de Supabase + genera un JWT_SECRET
+# Llenar DATABASE_URL con la URI de Supabase y generar JWT_SECRET
 
 npm install
-npx prisma migrate dev --name init   # crea las tablas en Supabase
-npm run seed                          # crea el usuario admin inicial
-npm run dev                           # corre en http://localhost:4000
+npx prisma migrate dev --name init
+npm run seed
+npm run dev
 ```
 
-Genera un `JWT_SECRET` seguro con:
+Para generar un JWT_SECRET:
 ```bash
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-Usuario admin creado por el seed:
-- Email: `jhojancamilorodriguez2017@gmail.com`
-- Password: `camilo74845348` ⚠️ cámbiala apenas puedas (crea otro admin y desactiva este, o actualízalo directo en Supabase Table Editor).
+El seed crea un usuario admin:
+- Email: `admin@misionpanamericana.com`
+- Password: `admin`
 
-## 3. Desplegar gratis en Render
+## Desplegar en Render
 
-1. Sube este backend a un repositorio en GitHub.
-2. Entra a https://render.com (login con GitHub).
-3. **New → Web Service** → conecta tu repo.
-4. Configuración:
-   - **Build Command**: `npm install && npx prisma generate`
-   - **Start Command**: `npx prisma migrate deploy && npm start`
-   - **Instance Type**: Free
-5. En **Environment**, agrega las variables de tu `.env` (`DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`).
-6. Deploy. Render te da una URL gratis tipo `https://iglesia-backend.onrender.com`.
+1. Subir el código a GitHub.
+2. En https://render.com → New → Web Service → conectar el repo.
+3. Build Command: `npm install && npx prisma generate`
+4. Start Command: `npx prisma migrate deploy && npm start`
+5. En Environment Variables agregar DATABASE_URL, JWT_SECRET y FRONTEND_URL.
+6. Deploy.
 
-> Nota: el plan free de Render "duerme" el servicio tras 15 min sin uso y tarda ~30-50s en despertar en la siguiente petición. Es normal y no cuesta nada.
+El plan free duerme el servicio después de 15 min sin tráfico. Tarda unos 30-50 segundos en despertar.
 
-## Endpoints principales
+## Endpoints
 
 | Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/api/auth/login` | No | Iniciar sesión |
-| POST | `/api/auth/usuarios` | ADMIN | Crear pastor/líder/admin |
-| GET | `/api/personas` | Sí | Listar personas (búsqueda, paginación) |
+|--------|------|------|-------------|
+| POST | `/api/auth/login` | No | Login |
+| POST | `/api/auth/usuarios` | ADMIN | Crear usuario |
+| GET | `/api/auth/usuarios` | ADMIN | Listar usuarios |
+| PUT | `/api/auth/usuarios/:id/toggle` | ADMIN | Activar/desactivar |
+| DELETE | `/api/auth/usuarios/:id` | ADMIN | Eliminar usuario |
+| GET | `/api/personas` | Sí | Listar personas |
 | POST | `/api/personas` | Sí | Crear persona |
-| GET | `/api/servicios` | No | Horarios (para la web pública) |
+| GET | `/api/servicios` | No | Horarios públicos |
 | POST | `/api/servicios` | ADMIN/PASTOR | Crear horario |
-| GET | `/api/eventos?tipo=proximos` | No | Eventos próximos/pasados |
-| GET | `/api/citas/pastores-disponibles` | No | Lista de pastores para el formulario |
-| POST | `/api/citas` | No | Solicitar cita (público) |
-| GET | `/api/citas` | Sí | Ver/gestionar todas las citas |
-| PUT | `/api/citas/:id/estado` | Sí | Confirmar/cancelar/completar cita |
-
-## Siguiente paso
-Cuando quieras, seguimos con el **frontend** (React) que consume esta API: página pública (horarios, eventos, formulario de citas) + panel privado de administración (login, gestión de personas/citas/eventos).
+| GET | `/api/eventos` | No | Eventos |
+| POST | `/api/citas` | No | Agendar cita |
+| GET | `/api/citas` | Sí | Ver citas |
+| PUT | `/api/citas/:id/estado` | Sí | Cambiar estado cita |
