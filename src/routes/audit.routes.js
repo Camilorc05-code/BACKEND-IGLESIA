@@ -28,4 +28,15 @@ router.get('/', async (req, res) => {
   }
 });
 
+// DELETE /api/audit — eliminar todo el historial
+router.delete('/', async (req, res) => {
+  try {
+    const { count } = await prisma.auditLog.deleteMany();
+    res.json({ message: `Se eliminaron ${count} registros.`, count });
+  } catch (err) {
+    console.error('[audit] Error eliminando:', err);
+    res.status(500).json({ error: 'Error al eliminar historial.' });
+  }
+});
+
 module.exports = router;
