@@ -155,4 +155,24 @@ router.get('/historial', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req
   }
 });
 
+// DELETE /api/checkin/fecha — borrar asistencia de una fecha específica (admin y pastor)
+router.delete('/fecha', requireAuth, requireRole('ADMIN', 'PASTOR'), async (req, res) => {
+  const { fecha } = req.body;
+  if (!fecha) return res.status(400).json({ error: 'Fecha requerida (YYYY-MM-DD).' });
+
+  try {
+    const inicio = new Date(fecha + 'T00:00:00.000Z');
+    const fin = new Date(fecha + 'T23:59:59.999Z');
+
+    const { count } = await prisma.asistencia.deleteMany({
+      where: { fecha: { gte: inicio, lte: fin } },
+    });
+
+    res.json({ ok: true, mensaje: `Se eliminaron ${count} registros de asistencia.`, count });
+  } catch (err) {
+    console.error('[checkin] Error eliminando por fecha:', err);
+    res.status(500).json({ error: 'Error al eliminar.' });
+  }
+});
+
 module.exports = router;
