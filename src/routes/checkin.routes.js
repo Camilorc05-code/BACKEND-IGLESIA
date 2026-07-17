@@ -15,29 +15,27 @@ router.post('/buscar', async (req, res) => {
   const palabras = termino.split(/\s+/).filter(Boolean);
 
   try {
-    const filtros = palabras.map((palabra) => ({
-      OR: [
-        { nombres: { contains: palabra, mode: 'insensitive' } },
-        { apellidos: { contains: palabra, mode: 'insensitive' } },
-      ],
-    }));
-
-    const personas = await prisma.persona.findMany({
-      where: {
-        activo: true,
-        AND: filtros,
-      },
-      select: {
-        id: true,
-        nombres: true,
-        apellidos: true,
-        numeroDocumento: true,
-        rolIglesia: true,
-        ministerio: true,
-      },
-      orderBy: { apellidos: 'asc' },
-      take: 20,
+    // Construir condiciones: cada palabra debe aparecer en nombres O apellidos
+    // Usamos unaccent() para ignorar tildes y mayúsculas
+    let condiciones = '';
+    const params = [];
+    palabras.forEach((palabra, i) => {
+      const param = `$${i + 1}`;
+      params.push(palabra);
+      if (i > 0) condiciones += ' AND ';
+      condiciones += `(unaccent(lower("Persona".nombres)) ILIKE unaccent(${param}) OR unaccent(lower("Persona".apellidos)) ILIKE unaccent(${param}))`;
     });
+
+    const query = `
+      SELECT "Persona".id, "Persona".nombres, "Persona".apellidos, "Persona"."numeroDocumento", "Persona"."rolIglesia", "Persona".ministerio
+      FROM "Persona"
+      WHERE "Persona".activo = true
+        AND ${condiciones}
+      ORDER BY "Persona".apellidos ASC
+      LIMIT 20
+    `;
+
+    const personas = await prisma.$queryRawUnsafe(query, ...params);
 
     if (personas.length === 0) {
       return res.status(404).json({ error: 'No encontramos a nadie con ese nombre.' });
