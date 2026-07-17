@@ -109,7 +109,7 @@ router.post(
       delete data.updatedAt;
 
       const persona = await prisma.persona.create({ data });
-      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo miembro registrado', mensaje: `${persona.nombres} ${persona.apellidos} fue agregado como miembro.` }, { push: true, pushTodos: true });
+      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo miembro', mensaje: `${persona.nombres} ${persona.apellidos} se registró como nuevo.` }, { push: true, pushTodos: true });
       registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'CREATE', entidad: 'Persona', entidadId: persona.id, detalle: `${persona.nombres} ${persona.apellidos}` });
       res.status(201).json(persona);
     } catch (err) {

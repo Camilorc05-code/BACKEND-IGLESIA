@@ -15,6 +15,18 @@ router.get('/vapid-key', (req, res) => {
   res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
 });
 
+// GET /api/push/subscriptions — listar suscripciones (solo para diagnosticar)
+router.get('/subscriptions', requireAuth, async (req, res) => {
+  try {
+    const subs = await prisma.pushSubscription.findMany({
+      select: { id: true, usuarioId: true, createdAt: true },
+    });
+    res.json(subs);
+  } catch (err) {
+    res.status(500).json({ error: 'Error.' });
+  }
+});
+
 router.post('/subscribe', requireAuth, async (req, res) => {
   const { endpoint, p256dh, auth } = req.body;
   if (!endpoint || !p256dh || !auth) {
@@ -27,6 +39,7 @@ router.post('/subscribe', requireAuth, async (req, res) => {
       update: { p256dh, auth, usuarioId: req.usuario.id },
       create: { endpoint, p256dh, auth, usuarioId: req.usuario.id },
     });
+    console.log(`[push] ✅ Suscripción guardada: usuario=${req.usuario.nombre} (id=${req.usuario.id})`);
     res.json({ ok: true });
   } catch (err) {
     console.error('[push] Error guardando suscripción:', err.message);

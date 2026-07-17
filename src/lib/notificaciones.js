@@ -16,7 +16,6 @@ async function enviarPush(subscriptions, titulo, mensaje, url) {
       process.env.VAPID_PRIVATE_KEY
     );
 
-    const icono = titulo.startsWith('👤') || titulo.startsWith('📅') || titulo.startsWith('🔔') ? '' : '';
     const payload = JSON.stringify({ titulo, mensaje, url: url || '/admin' });
 
     for (const sub of subscriptions) {
@@ -25,9 +24,13 @@ async function enviarPush(subscriptions, titulo, mensaje, url) {
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           payload
         );
+        console.log(`[push] Enviado a usuarioId=${sub.usuarioId}`);
       } catch (err) {
+        console.error(`[push] Error enviando a usuarioId=${sub.usuarioId}:`, err.statusCode);
+        // No eliminar en el primer error, solo si es definitivo
         if (err.statusCode === 404 || err.statusCode === 410) {
           await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
+          console.log(`[push] Suscripción eliminada (404/410): usuarioId=${sub.usuarioId}`);
         }
       }
     }
