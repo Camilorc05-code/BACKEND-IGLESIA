@@ -345,7 +345,7 @@ router.get('/', async (req, res) => {
     const citas = await prisma.cita.findMany({
       where,
       include: { pastor: { select: { id: true, nombre: true } }, persona: true },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { fecha: 'asc' },
     });
     res.json(citas);
   } catch (err) {

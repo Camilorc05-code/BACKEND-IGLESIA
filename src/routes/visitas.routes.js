@@ -89,7 +89,7 @@ router.post(
 router.get('/', requireAuth, async (req, res) => {
   try {
     const visitas = await prisma.visita.findMany({
-      orderBy: { createdAt: 'asc' },
+      orderBy: { apellidos: 'asc' },
     });
     res.json(visitas);
   } catch (err) {

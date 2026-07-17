@@ -104,7 +104,7 @@ router.get('/usuarios', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
     const usuarios = await prisma.usuario.findMany({
       select: { id: true, nombre: true, email: true, rol: true, telefono: true, activo: true, createdAt: true },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { nombre: 'asc' },
     });
     res.json(usuarios);
   } catch (err) {
