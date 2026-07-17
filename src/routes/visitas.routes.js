@@ -98,28 +98,33 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/visitas/:id — eliminar visita + persona asociada si existe
+// DELETE /api/visitas/:id?eliminartambien=persona — eliminar visita (+ opcionalmente persona)
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const visita = await prisma.visita.findUnique({ where: { id: Number(req.params.id) } });
     if (!visita) return res.status(404).json({ error: 'Visita no encontrada.' });
 
-    // Buscar persona asociada por nombre + teléfono
-    const persona = await prisma.persona.findFirst({
-      where: {
-        nombres: visita.nombres,
-        apellidos: visita.apellidos,
-        telefono: visita.telefono,
-        rolIglesia: 'Visitante',
-      },
-    });
+    let personaEliminada = false;
 
-    if (persona) {
-      await prisma.persona.delete({ where: { id: persona.id } });
+    // Solo eliminar persona si se pide explícitamente
+    if (req.query.eliminartambien === 'persona') {
+      const persona = await prisma.persona.findFirst({
+        where: {
+          nombres: visita.nombres,
+          apellidos: visita.apellidos,
+          telefono: visita.telefono,
+          rolIglesia: 'Visitante',
+        },
+      });
+
+      if (persona) {
+        await prisma.persona.delete({ where: { id: persona.id } });
+        personaEliminada = true;
+      }
     }
 
     await prisma.visita.delete({ where: { id: Number(req.params.id) } });
-    res.json({ ok: true, personaEliminada: !!persona });
+    res.json({ ok: true, personaEliminada });
   } catch (err) {
     console.error('Error al eliminar visita:', err);
     res.status(500).json({ error: 'Error al eliminar visita.' });
