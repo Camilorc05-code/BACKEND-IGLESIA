@@ -106,11 +106,10 @@ router.get('/presentaciones', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER
       { header: 'Nombre Padre', key: 'nombrePadre', width: 25 },
       { header: 'Fecha Presentación', key: 'fechaPresentacion', width: 18 },
       { header: 'Notas', key: 'notas', width: 30 },
-      { header: 'Fecha Registro', key: 'createdAt', width: 16 },
     ];
 
-    agregarTitulo(ws, 'Presentaciones de Bebés — Misión Panamericana', 8);
-    estiloEncabezado(ws, 8);
+    agregarTitulo(ws, 'Presentaciones de Bebés — Misión Panamericana', 7);
+    estiloEncabezado(ws, 7);
 
     lista.forEach((p, i) => {
       ws.addRow({
@@ -121,7 +120,6 @@ router.get('/presentaciones', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER
         nombrePadre: p.nombrePadre,
         fechaPresentacion: new Date(p.fechaPresentacion).toLocaleDateString('es-CO'),
         notas: p.notas || '',
-        createdAt: new Date(p.createdAt).toLocaleDateString('es-CO'),
       });
     });
 
