@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const prisma = require('../lib/prisma');
 const { requireAuth } = require('../middleware/auth');
 const { crearNotificacion } = require('../lib/notificaciones');
+const { registrarAuditoria } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -124,6 +125,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     }
 
     await prisma.visita.delete({ where: { id: Number(req.params.id) } });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'DELETE', entidad: 'Visita', entidadId: Number(req.params.id), detalle: `${visita.nombres} ${visita.apellidos}${personaEliminada ? ' (+ Persona)' : ''}` });
     res.json({ ok: true, personaEliminada });
   } catch (err) {
     console.error('Error al eliminar visita:', err);

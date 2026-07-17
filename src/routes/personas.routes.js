@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { crearNotificacion } = require('../lib/notificaciones');
+const { registrarAuditoria } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -109,6 +110,7 @@ router.post(
 
       const persona = await prisma.persona.create({ data });
       crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo miembro registrado', mensaje: `${persona.nombres} ${persona.apellidos} fue agregado como miembro.` });
+      registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'CREATE', entidad: 'Persona', entidadId: persona.id, detalle: `${persona.nombres} ${persona.apellidos}` });
       res.status(201).json(persona);
     } catch (err) {
       console.error(err);
@@ -163,6 +165,7 @@ router.put('/:id', async (req, res) => {
       where: { id: Number(req.params.id) },
       data,
     });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'Persona', entidadId: persona.id, detalle: `${persona.nombres} ${persona.apellidos}` });
     res.json(persona);
   } catch (err) {
     console.error(err);
@@ -188,6 +191,7 @@ router.delete('/:id', requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) 
     }
 
     await prisma.persona.delete({ where: { id: Number(req.params.id) } });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'DELETE', entidad: 'Persona', entidadId: persona.id, detalle: `${persona.nombres} ${persona.apellidos}` });
     res.status(204).send();
   } catch (err) {
     console.error(err);

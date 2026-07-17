@@ -13,6 +13,8 @@ const presentacionesRoutes = require('./routes/presentaciones.routes');
 const excelRoutes = require('./routes/excel.routes');
 const notificacionesRoutes = require('./routes/notificaciones.routes');
 const pushRoutes = require('./routes/push.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+const auditRoutes = require('./routes/audit.routes');
 
 const app = express();
 
@@ -57,6 +59,8 @@ app.use('/api/presentaciones', presentacionesRoutes);
 app.use('/api/excel', excelRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {

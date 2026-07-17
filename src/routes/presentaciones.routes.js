@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { registrarAuditoria } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -49,6 +50,7 @@ router.post(
           notas: notas || null,
         },
       });
+      registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'CREATE', entidad: 'PresentacionBebe', entidadId: bebe.id, detalle: bebe.nombreBebe });
       res.status(201).json(bebe);
     } catch (err) {
       console.error(err);
@@ -77,6 +79,7 @@ router.put(
           notas: notas !== undefined ? notas : undefined,
         },
       });
+      registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'PresentacionBebe', entidadId: bebe.id, detalle: bebe.nombreBebe });
       res.json(bebe);
     } catch (err) {
       console.error(err);
@@ -93,6 +96,7 @@ router.delete(
   async (req, res) => {
     try {
       await prisma.presentacionBebe.delete({ where: { id: Number(req.params.id) } });
+      registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'DELETE', entidad: 'PresentacionBebe', entidadId: Number(req.params.id) });
       res.json({ ok: true });
     } catch (err) {
       console.error(err);

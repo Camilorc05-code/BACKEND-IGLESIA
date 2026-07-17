@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { registrarAuditoria } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -76,6 +77,7 @@ router.post(
       const usuario = await prisma.usuario.create({
         data: { nombre, email, passwordHash, rol, telefono },
       });
+      registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'CREATE', entidad: 'Usuario', entidadId: usuario.id, detalle: `${usuario.nombre} (${usuario.rol})` });
 
       res.status(201).json({
         id: usuario.id,
@@ -124,6 +126,7 @@ router.put('/usuarios/:id/toggle', requireAuth, requireRole('ADMIN'), async (req
       data: { activo: !usuario.activo },
       select: { id: true, nombre: true, email: true, rol: true, activo: true },
     });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'Usuario', entidadId: actualizado.id, detalle: `${actualizado.nombre} → ${actualizado.activo ? 'Activado' : 'Desactivado'}` });
     res.json(actualizado);
   } catch (err) {
     console.error(err);
@@ -143,6 +146,7 @@ router.delete('/usuarios/:id', requireAuth, requireRole('ADMIN'), async (req, re
     if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
     await prisma.usuario.delete({ where: { id } });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'DELETE', entidad: 'Usuario', entidadId: id, detalle: usuario.nombre });
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

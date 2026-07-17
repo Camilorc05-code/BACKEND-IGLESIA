@@ -5,6 +5,7 @@ const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { enviarCorreo, plantillaRecordatorio, plantillaRecordatorioSolicitante } = require('../lib/mail');
 const { crearNotificacion } = require('../lib/notificaciones');
+const { registrarAuditoria } = require('../lib/audit');
 
 // Helper local para formato 12h (reutiliza la lógica de mail.js)
 function formatTime12h(hora) {
@@ -168,6 +169,7 @@ router.post(
         cita,
       });
       crearNotificacion({ tipo: 'nueva_cita', titulo: 'Nueva cita agendada', mensaje: `${nombreSolicitante} agendó cita para el ${new Date(fecha).toLocaleDateString('es-CO')} a las ${hora}.` }, { push: true, pushUsuarioId: Number(pastorId) });
+      registrarAuditoria({ usuario: 'Público', accion: 'CREATE', entidad: 'Cita', entidadId: cita.id, detalle: `${nombreSolicitante} → ${cita.pastor?.nombre || 'Pastor'}` });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Error al solicitar la cita.' });
@@ -368,6 +370,7 @@ router.put(
         where: { id: Number(req.params.id) },
         data: { estado: req.body.estado, notasInternas: req.body.notasInternas },
       });
+      registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'Cita', entidadId: cita.id, detalle: `Estado → ${req.body.estado}` });
       res.json(cita);
     } catch (err) {
       console.error(err);
@@ -380,6 +383,7 @@ router.put(
 router.delete('/:id', requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) => {
   try {
     await prisma.cita.delete({ where: { id: Number(req.params.id) } });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'DELETE', entidad: 'Cita', entidadId: Number(req.params.id) });
     res.status(204).send();
   } catch (err) {
     console.error(err);

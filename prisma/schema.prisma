@@ -203,3 +203,17 @@ model PushSubscription {
 
   @@map("push_subscriptions")
 }
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?
+  usuario   String
+  accion    String   // CREATE, UPDATE, DELETE
+  entidad   String   // Persona, Cita, Evento, etc.
+  entidadId Int?
+  detalle   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}

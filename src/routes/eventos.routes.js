@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { registrarAuditoria } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -98,6 +99,7 @@ router.post(
         },
         include: { imagenes: true },
       });
+      registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'CREATE', entidad: 'Evento', entidadId: evento.id, detalle: evento.titulo });
       res.status(201).json(evento);
     } catch (err) {
       console.error(err);
@@ -125,6 +127,7 @@ router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
       data: updateData,
       include: { imagenes: { orderBy: { orden: 'asc' } } },
     });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'Evento', entidadId: evento.id, detalle: evento.titulo });
     res.json(evento);
   } catch (err) {
     console.error(err);
@@ -136,6 +139,7 @@ router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
 router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
     await prisma.evento.delete({ where: { id: Number(req.params.id) } });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'DELETE', entidad: 'Evento', entidadId: Number(req.params.id) });
     res.status(204).send();
   } catch (err) {
     console.error(err);
