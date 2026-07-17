@@ -19,18 +19,34 @@ async function enviarPush(subscriptions, titulo, mensaje, url) {
     const payload = JSON.stringify({ titulo, mensaje, url: url || '/admin' });
 
     for (const sub of subscriptions) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        );
-        console.log(`[push] Enviado a usuarioId=${sub.usuarioId}`);
-      } catch (err) {
-        console.error(`[push] Error enviando a usuarioId=${sub.usuarioId}:`, err.statusCode);
-        // No eliminar en el primer error, solo si es definitivo
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
-          console.log(`[push] Suscripción eliminada (404/410): usuarioId=${sub.usuarioId}`);
+      let enviado = false;
+      for (let intento = 0; intento < 2 && !enviado; intento++) {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+              expirationTime: null,
+            },
+            payload,
+            {
+              TTL: 86400, // 24 horas para que FCM retenga la notificación
+              urgency: 'high',
+              headers: { 'Priority': 'high' },
+            }
+          );
+          console.log(`[push] Enviado a usuarioId=${sub.usuarioId} (intento ${intento + 1})`);
+          enviado = true;
+        } catch (err) {
+          console.error(`[push] Error envío a usuarioId=${sub.usuarioId} (intento ${intento + 1}):`, err.statusCode);
+          if (err.statusCode === 404 || err.statusCode === 410) {
+            await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
+            console.log(`[push] Suscripción eliminada (404/410): usuarioId=${sub.usuarioId}`);
+            enviado = true; // no reintentar
+          } else if (intento === 0) {
+            // Esperar 2 segundos antes del reintento
+            await new Promise((r) => setTimeout(r, 2000));
+          }
         }
       }
     }
