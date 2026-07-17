@@ -37,7 +37,7 @@ router.post(
     }
 
     try {
-      const { nombres, apellidos, email, telefono, barrio, direccion, adicional, asisteOtraIglesia, desearLlamada } = req.body;
+      const { nombres, apellidos, email, telefono, barrio, direccion, adicional, asisteOtraIglesia, desearLlamada, tipoDocumento, numeroDocumento } = req.body;
 
       // Usar transacción para crear Visita + Persona juntas
       const result = await prisma.$transaction(async (tx) => {
@@ -66,6 +66,8 @@ router.post(
             apellidos,
             telefono,
             email: email || null,
+            tipoDocumento: tipoDocumento || null,
+            numeroDocumento: numeroDocumento || null,
             barrio: barrio || null,
             direccion: direccion || null,
             rolIglesia: 'Visitante',
