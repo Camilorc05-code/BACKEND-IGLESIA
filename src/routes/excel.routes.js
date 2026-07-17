@@ -9,6 +9,7 @@ const router = express.Router();
 router.get('/personas', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) => {
   try {
     const personas = await prisma.persona.findMany({
+      where: { activo: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -33,7 +34,6 @@ router.get('/personas', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), as
       { header: 'Bautizado', key: 'bautizado', width: 10 },
       { header: 'Fecha Bautismo', key: 'fechaBautismo', width: 16 },
       { header: 'Notas', key: 'notas', width: 30 },
-      { header: 'Activo', key: 'activo', width: 8 },
       { header: 'Fecha Ingreso', key: 'fechaIngreso', width: 16 },
     ];
 
@@ -61,7 +61,6 @@ router.get('/personas', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), as
         bautizado: p.bautizado ? 'Sí' : 'No',
         fechaBautismo: p.fechaBautismo ? new Date(p.fechaBautismo).toLocaleDateString('es-CO') : '',
         notas: p.notas || '',
-        activo: p.activo ? 'Sí' : 'No',
         fechaIngreso: new Date(p.fechaIngreso).toLocaleDateString('es-CO'),
       });
     });
