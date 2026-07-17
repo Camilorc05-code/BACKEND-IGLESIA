@@ -77,7 +77,7 @@ router.post(
       });
 
       console.log('[visitas] ✅ Visita y Persona creadas:', result.visita.id, result.persona.id);
-      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo visitante registrado', mensaje: `${nombres} ${apellidos} se registró como visitante.` }, { push: true, pushTodos: true });
+      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo registrado', mensaje: `${nombres} ${apellidos} se registró como nuevo.` }, { push: true, pushTodos: true });
       res.status(201).json({ ok: true, id: result.visita.id });
     } catch (err) {
       console.error('Error al crear visita:', err);
