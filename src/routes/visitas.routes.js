@@ -2,7 +2,6 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 const prisma = require('../lib/prisma');
-const { enviarCorreo, plantillaNuevaVisita } = require('../lib/mail');
 const { requireAuth } = require('../middleware/auth');
 const { crearNotificacion } = require('../lib/notificaciones');
 
@@ -79,21 +78,6 @@ router.post(
       console.log('[visitas] ✅ Visita y Persona creadas:', result.visita.id, result.persona.id);
       crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo visitante registrado', mensaje: `${nombres} ${apellidos} se registró como visitante.` });
       res.status(201).json({ ok: true, id: result.visita.id });
-
-      // Notificar a usuarios ADMIN por correo (en background, sin bloquear respuesta)
-      prisma.usuario.findMany({
-        where: { rol: 'ADMIN', activo: true },
-        select: { email: true },
-      })
-        .then((admins) => {
-          const html = plantillaNuevaVisita({
-            nombres, apellidos, telefono, email, adicional, asisteOtraIglesia, desearLlamada,
-          });
-          for (const admin of admins) {
-            enviarCorreo({ to: admin.email, subject: 'Nueva persona registrada en el sitio', html });
-          }
-        })
-        .catch((e) => console.error('[visitas] Error enviando notificación a admins:', e.message));
     } catch (err) {
       console.error('Error al crear visita:', err);
       res.status(500).json({ error: 'Error al registrar visita.' });
