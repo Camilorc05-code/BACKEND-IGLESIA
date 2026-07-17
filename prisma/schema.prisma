@@ -166,3 +166,17 @@ model Visita {
 
   @@map("visitas")
 }
+
+model PresentacionBebe {
+  id                Int      @id @default(autoincrement())
+  nombreBebe        String
+  fechaNacimiento   DateTime
+  nombreMadre       String
+  nombrePadre       String
+  fechaPresentacion DateTime
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("presentaciones_bebe")
+}
