@@ -3,7 +3,8 @@ const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { enviarCorreo, plantillaRecordatorio } = require('../lib/mail');
+const { enviarCorreo, plantillaRecordatorio, plantillaRecordatorioSolicitante } = require('../lib/mail');
+const { crearNotificacion } = require('../lib/notificaciones');
 
 // Helper local para formato 12h (reutiliza la lógica de mail.js)
 function formatTime12h(hora) {
@@ -166,6 +167,7 @@ router.post(
         mensaje: 'Cita solicitada correctamente. Te contactaremos para confirmar.',
         cita,
       });
+      crearNotificacion({ tipo: 'nueva_cita', titulo: 'Nueva cita agendada', mensaje: `${nombreSolicitante} agendó cita para el ${new Date(fecha).toLocaleDateString('es-CO')} a las ${hora}.` });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Error al solicitar la cita.' });
@@ -182,10 +184,12 @@ router.get('/auto-recordatorios', async (req, res) => {
   }
 
   const ahora = new Date();
-  const en48h = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
+  const en24h = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
 
   try {
-    const citas = await prisma.cita.findMany({
+    // 1) Recordatorios al pastor (citas dentro de 48h)
+    const en48h = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
+    const citasPastor = await prisma.cita.findMany({
       where: {
         estado: { in: ['PENDIENTE', 'CONFIRMADA'] },
         recordatorioEnviado: false,
@@ -195,12 +199,9 @@ router.get('/auto-recordatorios', async (req, res) => {
       orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
     });
 
-    let enviados = 0;
-    let errores = 0;
-
-    for (const cita of citas) {
+    let enviadosPastor = 0;
+    for (const cita of citasPastor) {
       if (!cita.pastor?.email) continue;
-
       try {
         const html = plantillaRecordatorio({
           pastorNombre: cita.pastor.nombre,
@@ -209,30 +210,55 @@ router.get('/auto-recordatorios', async (req, res) => {
           hora: cita.hora,
           motivo: cita.motivo,
         });
-
-        await enviarCorreo({
-          to: cita.pastor.email,
-          subject: `Recordatorio: Cita pastoral con ${cita.nombreSolicitante}`,
-          html,
-        });
-
-        await prisma.cita.update({
-          where: { id: cita.id },
-          data: { recordatorioEnviado: true },
-        });
-
-        enviados++;
+        await enviarCorreo({ to: cita.pastor.email, subject: `Recordatorio: Cita pastoral con ${cita.nombreSolicitante}`, html });
+        await prisma.cita.update({ where: { id: cita.id }, data: { recordatorioEnviado: true } });
+        enviadosPastor++;
       } catch (err) {
-        console.error(`[recordatorios] Error enviando a ${cita.pastor.email}:`, err.message);
-        errores++;
+        console.error(`[recordatorios] Error enviando a pastor ${cita.pastor.email}:`, err.message);
       }
     }
 
+    // 2) Recordatorios al solicitante (citas dentro de 24h)
+    const citasSolicitante = await prisma.cita.findMany({
+      where: {
+        estado: { in: ['PENDIENTE', 'CONFIRMADA'] },
+        recordatorioSolicitante: false,
+        emailSolicitante: { not: null },
+        fecha: { gte: ahora, lte: en24h },
+      },
+      include: { pastor: { select: { nombre: true } } },
+      orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
+    });
+
+    let enviadosSolicitante = 0;
+    for (const cita of citasSolicitante) {
+      try {
+        const html = plantillaRecordatorioSolicitante({
+          nombre: cita.nombreSolicitante,
+          pastorNombre: cita.pastor?.nombre || 'Pastor',
+          fecha: cita.fecha,
+          hora: cita.hora,
+          motivo: cita.motivo,
+        });
+        await enviarCorreo({ to: cita.emailSolicitante, subject: `Recordatorio: Tu cita pastoral mañana`, html });
+        await prisma.cita.update({ where: { id: cita.id }, data: { recordatorioSolicitante: true } });
+        enviadosSolicitante++;
+      } catch (err) {
+        console.error(`[recordatorios] Error enviando a solicitante ${cita.emailSolicitante}:`, err.message);
+      }
+    }
+
+    if (enviadosPastor > 0) {
+      crearNotificacion({ tipo: 'recordatorio', titulo: 'Recordatorios enviados', mensaje: `Se enviaron ${enviadosPastor} recordatorio(s) a pastores.` });
+    }
+    if (enviadosSolicitante > 0) {
+      crearNotificacion({ tipo: 'recordatorio', titulo: 'Recordatorios enviados', mensaje: `Se enviaron ${enviadosSolicitante} recordatorio(s) a solicitantes.` });
+    }
+
     res.json({
-      mensaje: `Recordatorios procesados: ${enviados} enviados, ${errores} errores`,
-      enviados,
-      errores,
-      total: citas.length,
+      mensaje: `Pastor: ${enviadosPastor} | Solicitante: ${enviadosSolicitante}`,
+      pastor: enviadosPastor,
+      solicitante: enviadosSolicitante,
     });
   } catch (err) {
     console.error(err);

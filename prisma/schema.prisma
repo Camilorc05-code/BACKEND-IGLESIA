@@ -131,22 +131,23 @@ model EventoImagen {
 }
 
 model Cita {
-  id                  Int        @id @default(autoincrement())
-  personaId           Int?
-  persona             Persona?   @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  nombreSolicitante   String
-  telefonoSolicitante String
-  emailSolicitante    String?
-  pastorId            Int
-  pastor              Usuario    @relation("PastorCitas", fields: [pastorId], references: [id])
-  fecha               DateTime
-  hora                String
-  motivo              String?
-  estado              EstadoCita @default(PENDIENTE)
-  recordatorioEnviado Boolean  @default(false)
-  notasInternas       String?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  id                          Int        @id @default(autoincrement())
+  personaId                   Int?
+  persona                     Persona?   @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  nombreSolicitante           String
+  telefonoSolicitante         String
+  emailSolicitante            String?
+  pastorId                    Int
+  pastor                      Usuario    @relation("PastorCitas", fields: [pastorId], references: [id])
+  fecha                       DateTime
+  hora                        String
+  motivo                      String?
+  estado                      EstadoCita @default(PENDIENTE)
+  recordatorioEnviado         Boolean  @default(false)
+  recordatorioSolicitante     Boolean  @default(false)
+  notasInternas               String?
+  createdAt                   DateTime   @default(now())
+  updatedAt                   DateTime   @updatedAt
 
   @@map("citas")
 }
@@ -179,4 +180,25 @@ model PresentacionBebe {
   updatedAt         DateTime @updatedAt
 
   @@map("presentaciones_bebe")
+}
+
+model Notificacion {
+  id        Int      @id @default(autoincrement())
+  tipo      String   // "nuevo_miembro", "nueva_cita", "recordatorio", "sistema"
+  titulo    String
+  mensaje   String
+  leida     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notificaciones")
+}
+
+model PushSubscription {
+  id           Int      @id @default(autoincrement())
+  endpoint     String   @unique
+  p256dh       String
+  auth         String
+  createdAt    DateTime @default(now())
+
+  @@map("push_subscriptions")
 }

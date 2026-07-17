@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { crearNotificacion } = require('../lib/notificaciones');
 
 const router = express.Router();
 
@@ -107,6 +108,7 @@ router.post(
       delete data.updatedAt;
 
       const persona = await prisma.persona.create({ data });
+      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo miembro registrado', mensaje: `${persona.nombres} ${persona.apellidos} fue agregado como miembro.` });
       res.status(201).json(persona);
     } catch (err) {
       console.error(err);

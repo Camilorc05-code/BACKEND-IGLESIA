@@ -43,7 +43,6 @@ router.get('/personas', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), as
       { header: 'Barrio', key: 'barrio', width: 20 },
       { header: 'Dirección', key: 'direccion', width: 25 },
       { header: 'Fecha Nacimiento', key: 'fechaNacimiento', width: 16 },
-      { header: 'Género', key: 'genero', width: 10 },
       { header: 'Ministerio', key: 'ministerio', width: 18 },
       { header: 'Rol Iglesia', key: 'rolIglesia', width: 16 },
       { header: 'Bautizado', key: 'bautizado', width: 10 },
@@ -52,8 +51,8 @@ router.get('/personas', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), as
       { header: 'Fecha Ingreso', key: 'fechaIngreso', width: 16 },
     ];
 
-    agregarTitulo(ws, 'Miembros — Misión Panamericana', 17);
-    estiloEncabezado(ws, 17);
+    agregarTitulo(ws, 'Miembros — Misión Panamericana', 16);
+    estiloEncabezado(ws, 16);
 
     personas.forEach((p, i) => {
       ws.addRow({
@@ -67,7 +66,6 @@ router.get('/personas', requireAuth, requireRole('ADMIN', 'PASTOR', 'LIDER'), as
         barrio: p.barrio || '',
         direccion: p.direccion || '',
         fechaNacimiento: p.fechaNacimiento ? new Date(p.fechaNacimiento).toLocaleDateString('es-CO') : '',
-        genero: p.genero || '',
         ministerio: p.ministerio || '',
         rolIglesia: p.rolIglesia || '',
         bautizado: p.bautizado ? 'Sí' : 'No',

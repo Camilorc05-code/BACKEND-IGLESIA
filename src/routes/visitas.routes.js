@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const prisma = require('../lib/prisma');
 const { enviarCorreo, plantillaNuevaVisita } = require('../lib/mail');
 const { requireAuth } = require('../middleware/auth');
+const { crearNotificacion } = require('../lib/notificaciones');
 
 const router = express.Router();
 
@@ -76,6 +77,7 @@ router.post(
       });
 
       console.log('[visitas] ✅ Visita y Persona creadas:', result.visita.id, result.persona.id);
+      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo visitante registrado', mensaje: `${nombres} ${apellidos} se registró como visitante.` });
       res.status(201).json({ ok: true, id: result.visita.id });
 
       // Notificar a usuarios ADMIN por correo (en background, sin bloquear respuesta)
