@@ -15,6 +15,7 @@ const notificacionesRoutes = require('./routes/notificaciones.routes');
 const pushRoutes = require('./routes/push.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const auditRoutes = require('./routes/audit.routes');
+const checkinRoutes = require('./routes/checkin.routes');
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/checkin', checkinRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {
