@@ -32,40 +32,42 @@ router.get('/estadisticas', async (req, res) => {
     // Usuarios activos
     const totalUsuarios = await prisma.usuario.count({ where: { activo: true } });
 
-    // Nuevos miembros por mes (últimos 12 meses)
-    const hace12Meses = new Date();
-    hace12Meses.setMonth(hace12Meses.getMonth() - 11);
-    hace12Meses.setDate(1);
-    hace12Meses.setHours(0, 0, 0, 0);
+    // Gráficas: desde julio 2026 hasta el mes actual
+    const inicioGraficas = new Date(2026, 6, 1); // Julio 2026
+    const finGraficas = new Date();
+    finGraficas.setDate(1);
+    finGraficas.setHours(0, 0, 0, 0);
+
+    // Si estamos antes de julio 2026, usar desde enero del año actual
+    const fechaInicio = new Date(Math.min(inicioGraficas.getTime(), finGraficas.getTime()));
+    fechaInicio.setMonth(fechaInicio.getMonth() - 11);
+    if (fechaInicio < inicioGraficas) fechaInicio.setTime(inicioGraficas.getTime());
 
     const personasPorMes = await prisma.persona.groupBy({
       by: ['createdAt'],
-      where: { createdAt: { gte: hace12Meses } },
+      where: { createdAt: { gte: fechaInicio } },
       _count: true,
     });
 
-    // Nuevas visitas por mes
     const visitasPorMes = await prisma.visita.groupBy({
       by: ['createdAt'],
-      where: { createdAt: { gte: hace12Meses } },
+      where: { createdAt: { gte: fechaInicio } },
       _count: true,
     });
 
-    // Citas por mes
     const citasPorMes = await prisma.cita.groupBy({
       by: ['createdAt'],
-      where: { createdAt: { gte: hace12Meses } },
+      where: { createdAt: { gte: fechaInicio } },
       _count: true,
     });
 
-    // Procesar datos por mes
+    // Generar meses desde julio 2026 hasta el mes actual
     const meses = [];
-    for (let i = 0; i < 12; i++) {
-      const fecha = new Date();
-      fecha.setMonth(fecha.getMonth() - (11 - i));
-      const mes = fecha.getMonth();
-      const anio = fecha.getFullYear();
-      const label = fecha.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' });
+    const fechaMes = new Date(fechaInicio);
+    while (fechaMes <= finGraficas) {
+      const mes = fechaMes.getMonth();
+      const anio = fechaMes.getFullYear();
+      const label = fechaMes.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' });
 
       const miembrosMes = personasPorMes.filter((p) => {
         const d = new Date(p.createdAt);
@@ -83,6 +85,7 @@ router.get('/estadisticas', async (req, res) => {
       }).reduce((acc, c) => acc + c._count, 0);
 
       meses.push({ label, miembros: miembrosMes, visitas: visitasMes, citas: citasMes });
+      fechaMes.setMonth(fechaMes.getMonth() + 1);
     }
 
     res.json({
