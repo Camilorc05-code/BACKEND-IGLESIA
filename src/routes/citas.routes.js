@@ -4,7 +4,7 @@ const rateLimit = require('express-rate-limit');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { enviarCorreo, plantillaRecordatorio, plantillaRecordatorioSolicitante } = require('../lib/mail');
-const { crearNotificacion } = require('../lib/notificaciones');
+const { crearNotificacion, enviarPush } = require('../lib/notificaciones');
 const { registrarAuditoria } = require('../lib/audit');
 
 // Helper local para formato 12h (reutiliza la lógica de mail.js)
@@ -213,6 +213,11 @@ router.get('/auto-recordatorios', async (req, res) => {
           motivo: cita.motivo,
         });
         await enviarCorreo({ to: cita.pastor.email, subject: `Recordatorio: Cita pastoral con ${cita.nombreSolicitante}`, html });
+        // Push al pastor/líder asignado
+        const subsPastor = await prisma.pushSubscription.findMany({ where: { usuarioId: cita.pastor.id } });
+        if (subsPastor.length > 0) {
+          await enviarPush(subsPastor, '🔔 Recordatorio de cita', `Tienes cita con ${cita.nombreSolicitante} el ${new Date(cita.fecha).toLocaleDateString('es-CO')} a las ${cita.hora}`, '/admin/citas');
+        }
         await prisma.cita.update({ where: { id: cita.id }, data: { recordatorioEnviado: true } });
         enviadosPastor++;
       } catch (err) {
