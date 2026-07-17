@@ -76,7 +76,7 @@ router.post(
       });
 
       console.log('[visitas] ✅ Visita y Persona creadas:', result.visita.id, result.persona.id);
-      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo visitante registrado', mensaje: `${nombres} ${apellidos} se registró como visitante.` });
+      crearNotificacion({ tipo: 'nuevo_miembro', titulo: 'Nuevo visitante registrado', mensaje: `${nombres} ${apellidos} se registró como visitante.` }, { push: true, pushTodos: true });
       res.status(201).json({ ok: true, id: result.visita.id });
     } catch (err) {
       console.error('Error al crear visita:', err);
@@ -98,11 +98,28 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/visitas/:id — eliminar visita (requiere auth)
+// DELETE /api/visitas/:id — eliminar visita + persona asociada si existe
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
+    const visita = await prisma.visita.findUnique({ where: { id: Number(req.params.id) } });
+    if (!visita) return res.status(404).json({ error: 'Visita no encontrada.' });
+
+    // Buscar persona asociada por nombre + teléfono
+    const persona = await prisma.persona.findFirst({
+      where: {
+        nombres: visita.nombres,
+        apellidos: visita.apellidos,
+        telefono: visita.telefono,
+        rolIglesia: 'Visitante',
+      },
+    });
+
+    if (persona) {
+      await prisma.persona.delete({ where: { id: persona.id } });
+    }
+
     await prisma.visita.delete({ where: { id: Number(req.params.id) } });
-    res.json({ ok: true });
+    res.json({ ok: true, personaEliminada: !!persona });
   } catch (err) {
     console.error('Error al eliminar visita:', err);
     res.status(500).json({ error: 'Error al eliminar visita.' });

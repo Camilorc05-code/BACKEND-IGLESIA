@@ -5,19 +5,16 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configurar VAPID
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL || 'mailto:admin@misionpanamericana.com',
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );
 
-// GET /api/push/vapid-key — obtener la public key (público)
 router.get('/vapid-key', (req, res) => {
   res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
 });
 
-// POST /api/push/subscribe — guardar suscripción push
 router.post('/subscribe', requireAuth, async (req, res) => {
   const { endpoint, p256dh, auth } = req.body;
   if (!endpoint || !p256dh || !auth) {
@@ -25,11 +22,10 @@ router.post('/subscribe', requireAuth, async (req, res) => {
   }
 
   try {
-    // Upsert: si ya existe el endpoint, actualizar
     await prisma.pushSubscription.upsert({
       where: { endpoint },
-      update: { p256dh, auth },
-      create: { endpoint, p256dh, auth },
+      update: { p256dh, auth, usuarioId: req.usuario.id },
+      create: { endpoint, p256dh, auth, usuarioId: req.usuario.id },
     });
     res.json({ ok: true });
   } catch (err) {
@@ -38,7 +34,6 @@ router.post('/subscribe', requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/push/unsubscribe — eliminar suscripción
 router.delete('/unsubscribe', requireAuth, async (req, res) => {
   const { endpoint } = req.body;
   if (!endpoint) return res.status(400).json({ error: 'Endpoint requerido.' });
@@ -52,7 +47,6 @@ router.delete('/unsubscribe', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/push/send — enviar push a todos los suscritos (solo para uso interno)
 router.post('/send', requireAuth, async (req, res) => {
   const { titulo, mensaje, url } = req.body;
   if (!titulo || !mensaje) {
@@ -74,7 +68,6 @@ router.post('/send', requireAuth, async (req, res) => {
         );
         enviados++;
       } catch (err) {
-        // Si el suscriptor ya no es válido, eliminarlo
         if (err.statusCode === 404 || err.statusCode === 410) {
           await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
         }

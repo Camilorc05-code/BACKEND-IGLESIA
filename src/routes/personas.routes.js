@@ -170,13 +170,24 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/personas/:id — borrado lógico (no se pierde el historial)
+// DELETE /api/personas/:id — eliminación física + visita asociada
 router.delete('/:id', requireRole('ADMIN', 'PASTOR', 'LIDER'), async (req, res) => {
   try {
-    await prisma.persona.update({
-      where: { id: Number(req.params.id) },
-      data: { activo: false },
-    });
+    const persona = await prisma.persona.findUnique({ where: { id: Number(req.params.id) } });
+    if (!persona) return res.status(404).json({ error: 'Persona no encontrada.' });
+
+    // Si es visitante, también eliminar la visita asociada
+    if (persona.rolIglesia === 'Visitante') {
+      await prisma.visita.deleteMany({
+        where: {
+          nombres: persona.nombres,
+          apellidos: persona.apellidos,
+          telefono: persona.telefono,
+        },
+      });
+    }
+
+    await prisma.persona.delete({ where: { id: Number(req.params.id) } });
     res.status(204).send();
   } catch (err) {
     console.error(err);

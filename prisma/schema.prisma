@@ -198,6 +198,7 @@ model PushSubscription {
   endpoint     String   @unique
   p256dh       String
   auth         String
+  usuarioId    Int?
   createdAt    DateTime @default(now())
 
   @@map("push_subscriptions")

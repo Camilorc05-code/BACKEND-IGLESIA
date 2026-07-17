@@ -167,7 +167,7 @@ router.post(
         mensaje: 'Cita solicitada correctamente. Te contactaremos para confirmar.',
         cita,
       });
-      crearNotificacion({ tipo: 'nueva_cita', titulo: 'Nueva cita agendada', mensaje: `${nombreSolicitante} agendó cita para el ${new Date(fecha).toLocaleDateString('es-CO')} a las ${hora}.` });
+      crearNotificacion({ tipo: 'nueva_cita', titulo: 'Nueva cita agendada', mensaje: `${nombreSolicitante} agendó cita para el ${new Date(fecha).toLocaleDateString('es-CO')} a las ${hora}.` }, { push: true, pushUsuarioId: Number(pastorId) });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Error al solicitar la cita.' });
