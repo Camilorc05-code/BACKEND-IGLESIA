@@ -12,15 +12,20 @@ router.post('/buscar', async (req, res) => {
   }
 
   const termino = nombre.trim().toLowerCase();
+  const palabras = termino.split(/\s+/).filter(Boolean);
 
   try {
+    const filtros = palabras.map((palabra) => ({
+      OR: [
+        { nombres: { contains: palabra, mode: 'insensitive' } },
+        { apellidos: { contains: palabra, mode: 'insensitive' } },
+      ],
+    }));
+
     const personas = await prisma.persona.findMany({
       where: {
         activo: true,
-        OR: [
-          { nombres: { contains: termino, mode: 'insensitive' } },
-          { apellidos: { contains: termino, mode: 'insensitive' } },
-        ],
+        AND: filtros,
       },
       select: {
         id: true,
