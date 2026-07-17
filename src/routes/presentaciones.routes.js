@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
   try {
     const lista = await prisma.presentacionBebe.findMany({
-      orderBy: { fechaPresentacion: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
     res.json(lista);
   } catch (err) {

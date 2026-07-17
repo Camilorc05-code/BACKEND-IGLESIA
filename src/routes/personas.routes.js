@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
     const [personas, total] = await Promise.all([
       prisma.persona.findMany({
         where,
-        orderBy: { apellidos: 'asc' },
+        orderBy: { createdAt: 'asc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
       }),
