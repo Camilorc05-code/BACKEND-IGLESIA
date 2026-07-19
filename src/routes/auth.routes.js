@@ -31,22 +31,7 @@ router.post(
         return res.status(401).json({ error: 'Credenciales incorrectas.' });
       }
 
-      // Siempre requerir 2FA — si no está habilitado, forzar setup
-      if (!usuario.twoFactorEnabled) {
-        const tempToken = jwt.sign(
-          { id: usuario.id, temp2FA: true, setup: true },
-          process.env.JWT_SECRET,
-          { expiresIn: '10m' }
-        );
-        return res.json({
-          requires2FA: true,
-          twoFactorEnabled: false,
-          tempToken,
-          usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
-        });
-      }
-
-      // 2FA ya habilitado — pedir código
+      // Siempre requerir verificación SMS
       const tempToken = jwt.sign(
         { id: usuario.id, temp2FA: true },
         process.env.JWT_SECRET,
@@ -55,20 +40,8 @@ router.post(
 
       return res.json({
         requires2FA: true,
-        twoFactorEnabled: true,
         tempToken,
-        usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
-      });
-
-      const token = jwt.sign(
-        { id: usuario.id, email: usuario.email, rol: usuario.rol, nombre: usuario.nombre },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-
-      res.json({
-        token,
-        usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
+        usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol, telefono: usuario.telefono },
       });
     } catch (err) {
       console.error(err);

@@ -17,6 +17,7 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const auditRoutes = require('./routes/audit.routes');
 const checkinRoutes = require('./routes/checkin.routes');
 const twoFactorRoutes = require('./routes/twofactor.routes');
+const otpRoutes = require('./routes/otp.routes');
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/checkin', checkinRoutes);
 app.use('/api/2fa', twoFactorRoutes);
+app.use('/api/otp', otpRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {
