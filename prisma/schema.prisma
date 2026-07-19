@@ -78,7 +78,7 @@ model Servicio {
   lugar          String?
   descripcion    String?
   imagenUrl      String? // imagen de portada
-  imagenPosicion String? @default("center center") // posición de la imagen
+  imagenPosicion String? @default("50% 50%") // posición de la imagen
   activo         Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -108,7 +108,7 @@ model Evento {
   horaFin        String?
   lugar          String?
   imagenUrl      String? // imagen de portada
-  imagenPosicion String? @default("center center") // posición de la imagen
+  imagenPosicion String? @default("50% 50%") // posición de la imagen
   categoria      String   @default("Otro")
   // Categorías sugeridas: "Cumbre Ministerial", "Fiesta de Primicias",
   // "Juntos Bajo la Bendición de Dios", "Acción de Gracias",
