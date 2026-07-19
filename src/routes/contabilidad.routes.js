@@ -145,20 +145,24 @@ router.get('/excel', async (req, res) => {
   const now = new Date();
   const mes = req.query.mes ? Number(req.query.mes) : now.getMonth() + 1;
   const anio = req.query.anio ? Number(req.query.anio) : now.getFullYear();
+  const tipoFiltro = req.query.tipo || '';
   const inicioMes = new Date(anio, mes - 1, 1);
   const finMes = new Date(anio, mes, 0, 23, 59, 59);
   const nombreMes = inicioMes.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
   try {
+    const where = { fecha: { gte: inicioMes, lte: finMes } };
+    if (tipoFiltro && ['diezmo', 'ofrenda', 'donacion', 'gasto'].includes(tipoFiltro)) where.tipo = tipoFiltro;
     const movimientos = await prisma.movimientoContable.findMany({
-      where: { fecha: { gte: inicioMes, lte: finMes } },
+      where,
       include: { persona: { select: { id: true, nombres: true, apellidos: true, numeroDocumento: true } } },
       orderBy: { fecha: 'asc' },
     });
     const labels = { diezmo: 'Diezmo', ofrenda: 'Ofrenda', donacion: 'Donación', gasto: 'Gasto' };
+    const nombreTipo = tipoFiltro ? (labels[tipoFiltro] || 'Todos') : 'Todos';
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Misión Panamericana';
     workbook.created = new Date();
-    const sheet = workbook.addWorksheet(`Contabilidad ${nombreMes}`);
+    const sheet = workbook.addWorksheet(`${nombreTipo} ${nombreMes}`);
     // Título
     sheet.mergeCells('A1:H1');
     const titulo = sheet.getCell('A1');
@@ -168,7 +172,7 @@ router.get('/excel', async (req, res) => {
     // Subtítulo
     sheet.mergeCells('A2:H2');
     const sub = sheet.getCell('A2');
-    sub.value = `Resumen Contable — ${nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1)}`;
+    sub.value = `${nombreTipo}${tipoFiltro ? '' : ' — Todos los tipos'} — ${nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1)}`;
     sub.font = { size: 11, italic: true, color: { argb: 'FF666666' } };
     sub.alignment = { horizontal: 'center' };
     // Encabezados
@@ -227,7 +231,8 @@ router.get('/excel', async (req, res) => {
       { width: 28 }, { width: 16 }, { width: 16 }, { width: 30 },
     ];
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=contabilidad-${nombreMes.replace(/\s+/g, '-')}.xlsx`);
+    const nombreArchivo = tipoFiltro ? `${nombreTipo}-${nombreMes}` : `contabilidad-${nombreMes}`;
+    res.setHeader('Content-Disposition', `attachment; filename=${nombreArchivo.replace(/\s+/g, '-')}.xlsx`);
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
