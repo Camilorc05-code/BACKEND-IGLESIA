@@ -67,6 +67,7 @@ model Persona {
 
   citas Cita[]
   asistencias Asistencia[]
+  movimientos MovimientoContable[]
 
   @@map("personas")
 }
@@ -238,4 +239,24 @@ model Asistencia {
   @@index([fecha])
   @@index([personaId])
   @@map("asistencias")
+}
+
+model MovimientoContable {
+  id            Int      @id @default(autoincrement())
+  tipo          String   // "diezmo", "ofrenda", "donacion", "gasto"
+  monto         Float
+  personaId     Int?
+  persona       Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  nombreAnonimo String?  // cuando es anónimo o persona externa
+  descripcion   String?
+  metodoPago    String?  // "efectivo", "transferencia", "nequi", "daviplata", "otro"
+  registradoPor Int?
+  fecha         DateTime @default(now())
+  notas         String?
+  createdAt     DateTime @default(now())
+
+  @@index([fecha])
+  @@index([tipo])
+  @@index([personaId])
+  @@map("movimientos_contables")
 }

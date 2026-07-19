@@ -18,6 +18,8 @@ const auditRoutes = require('./routes/audit.routes');
 const checkinRoutes = require('./routes/checkin.routes');
 const twoFactorRoutes = require('./routes/twofactor.routes');
 const otpRoutes = require('./routes/otp.routes');
+const contabilidadRoutes = require('./routes/contabilidad.routes');
+const alertasRoutes = require('./routes/alertas.routes');
 
 const app = express();
 
@@ -67,6 +69,8 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/checkin', checkinRoutes);
 app.use('/api/2fa', twoFactorRoutes);
 app.use('/api/otp', otpRoutes);
+app.use('/api/contabilidad', contabilidadRoutes);
+app.use('/api/alertas', alertasRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {
