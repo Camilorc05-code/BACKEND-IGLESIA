@@ -98,6 +98,36 @@ router.post('/', [body('tipo').isIn(['diezmo', 'ofrenda', 'donacion', 'gasto']),
   }
 });
 
+// PUT /api/contabilidad/:id — editar movimiento
+router.put('/:id', [body('tipo').isIn(['diezmo', 'ofrenda', 'donacion', 'gasto']), body('monto').isFloat({ gt: 0 })], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: 'Datos inválidos', details: errors.array() });
+  const { tipo, monto, personaId, nombreAnonimo, descripcion, metodoPago, notas, fecha } = req.body;
+  try {
+    const existente = await prisma.movimientoContable.findUnique({ where: { id: Number(req.params.id) } });
+    if (!existente) return res.status(404).json({ error: 'Movimiento no encontrado.' });
+    const movimiento = await prisma.movimientoContable.update({
+      where: { id: Number(req.params.id) },
+      data: {
+        tipo,
+        monto: Number(monto),
+        personaId: personaId ? Number(personaId) : null,
+        nombreAnonimo,
+        descripcion,
+        metodoPago,
+        notas,
+        fecha: fecha ? new Date(fecha) : existente.fecha,
+      },
+      include: { persona: { select: { id: true, nombres: true, apellidos: true } } },
+    });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'MovimientoContable', entidadId: movimiento.id, detalle: `Editado ${tipo} $${monto}` });
+    res.json(movimiento);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al editar movimiento.' });
+  }
+});
+
 // DELETE /api/contabilidad/:id — eliminar movimiento (solo ADMIN)
 router.delete('/:id', requireRole('ADMIN'), async (req, res) => {
   try {
