@@ -7,17 +7,47 @@ const { registrarAuditoria } = require('../lib/audit');
 
 const router = express.Router();
 
-// POST /api/2fa/setup — Generar secreto TOTP y URL otpauth
-router.post('/setup', requireAuth, async (req, res) => {
+function verifyTempToken(token) {
   try {
-    const usuario = await prisma.usuario.findUnique({ where: { id: req.usuario.id } });
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (!payload.temp2FA) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+// POST /api/2fa/setup — Generar secreto TOTP (funciona con tempToken o JWT)
+router.post('/setup', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  let usuarioId;
+
+  // Aceptar tempToken (setup) o JWT normal
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const payload = verifyTempToken(token);
+    if (payload) {
+      usuarioId = payload.id;
+    } else {
+      try {
+        const jwtPayload = jwt.verify(token, process.env.JWT_SECRET);
+        usuarioId = jwtPayload.id;
+      } catch {
+        return res.status(401).json({ error: 'Token inválido.' });
+      }
+    }
+  } else {
+    return res.status(401).json({ error: 'Token requerido.' });
+  }
+
+  try {
+    const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
     if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
     if (usuario.twoFactorEnabled) {
-      return res.status(400).json({ error: 'La autenticación de dos factores ya está habilitada. Desactívala primero.' });
+      return res.status(400).json({ error: 'La autenticación de dos factores ya está habilitada.' });
     }
 
-    // Import dinámico de otpauth (ESM)
     const otpauth = await import('otpauth');
 
     const totp = new otpauth.TOTP({
@@ -32,9 +62,8 @@ router.post('/setup', requireAuth, async (req, res) => {
     const secret = totp.secret.base32;
     const otpauthUrl = totp.toString();
 
-    // Guardar el secreto temporalmente (sin habilitar aún)
     await prisma.usuario.update({
-      where: { id: req.usuario.id },
+      where: { id: usuarioId },
       data: { twoFactorSecret: secret },
     });
 
@@ -45,10 +74,9 @@ router.post('/setup', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/2fa/verify — Verificar código y habilitar 2FA
+// POST /api/2fa/verify — Verificar código y habilitar 2FA (funciona con tempToken o JWT)
 router.post(
   '/verify',
-  requireAuth,
   [body('code').isLength({ min: 6, max: 6 })],
   async (req, res) => {
     const errors = validationResult(req);
@@ -56,8 +84,28 @@ router.post(
       return res.status(400).json({ error: 'Código inválido.', details: errors.array() });
     }
 
+    const authHeader = req.headers.authorization;
+    let usuarioId;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const payload = verifyTempToken(token);
+      if (payload) {
+        usuarioId = payload.id;
+      } else {
+        try {
+          const jwtPayload = jwt.verify(token, process.env.JWT_SECRET);
+          usuarioId = jwtPayload.id;
+        } catch {
+          return res.status(401).json({ error: 'Token inválido.' });
+        }
+      }
+    } else {
+      return res.status(401).json({ error: 'Token requerido.' });
+    }
+
     try {
-      const usuario = await prisma.usuario.findUnique({ where: { id: req.usuario.id } });
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
       if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
       if (!usuario.twoFactorSecret) {
@@ -86,20 +134,32 @@ router.post(
       }
 
       await prisma.usuario.update({
-        where: { id: req.usuario.id },
+        where: { id: usuarioId },
         data: { twoFactorEnabled: true },
       });
 
+      // Generar token real después de verificar
+      const fullToken = jwt.sign(
+        { id: usuario.id, email: usuario.email, rol: usuario.rol, nombre: usuario.nombre },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
       registrarAuditoria({
-        usuario: req.usuario.email,
-        usuarioId: req.usuario.id,
+        usuario: usuario.email,
+        usuarioId: usuario.id,
         accion: 'UPDATE',
         entidad: 'Usuario',
-        entidadId: req.usuario.id,
+        entidadId: usuario.id,
         detalle: 'Autenticación de dos factores habilitada',
       });
 
-      res.json({ ok: true, message: 'Autenticación de dos factores habilitada correctamente.' });
+      res.json({
+        ok: true,
+        message: 'Autenticación de dos factores habilitada correctamente.',
+        fullToken,
+        usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Error al verificar el código.' });
@@ -178,16 +238,9 @@ router.post(
     const { token, code } = req.body;
 
     try {
-      // Verificar el temp token
-      let payload;
-      try {
-        payload = jwt.verify(token, process.env.JWT_SECRET);
-      } catch {
+      const payload = verifyTempToken(token);
+      if (!payload) {
         return res.status(401).json({ error: 'Token temporal inválido o expirado.' });
-      }
-
-      if (!payload.temp2FA) {
-        return res.status(400).json({ error: 'Token no válido para verificación 2FA.' });
       }
 
       const usuario = await prisma.usuario.findUnique({ where: { id: payload.id } });
@@ -216,7 +269,6 @@ router.post(
         return res.status(400).json({ error: 'Código incorrecto. Intenta de nuevo.' });
       }
 
-      // Código correcto: generar el token real
       const fullToken = jwt.sign(
         { id: usuario.id, email: usuario.email, rol: usuario.rol, nombre: usuario.nombre },
         process.env.JWT_SECRET,
