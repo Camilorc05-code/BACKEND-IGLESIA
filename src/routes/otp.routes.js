@@ -8,6 +8,7 @@ const { registrarAuditoria } = require('../lib/audit');
 const router = express.Router();
 
 // Almacén temporal de códigos OTP (en memoria)
+// Cada usuario puede tener múltiples códigos (uno por cada dispositivo/sesión)
 const codigosOTP = new Map();
 
 function generarCodigo() {
@@ -15,30 +16,54 @@ function generarCodigo() {
 }
 
 function guardarCodigo(usuarioId, codigo) {
-  codigosOTP.set(usuarioId, {
+  if (!codigosOTP.has(usuarioId)) {
+    codigosOTP.set(usuarioId, []);
+  }
+  const lista = codigosOTP.get(usuarioId);
+  // Máximo 5 códigos activos por usuario (limpiar expirados)
+  const ahora = Date.now();
+  const activos = lista.filter((c) => ahora < c.expira);
+  if (activos.length >= 5) {
+    activos.shift(); // eliminar el más viejo
+  }
+  activos.push({
     codigo,
-    expira: Date.now() + 5 * 60 * 1000,
+    expira: ahora + 5 * 60 * 1000,
     intentos: 0,
   });
+  codigosOTP.set(usuarioId, activos);
 }
 
 function verificarCodigo(usuarioId, codigo) {
-  const entry = codigosOTP.get(usuarioId);
-  if (!entry) return { ok: false, error: 'Código no encontrado. Solicita uno nuevo.' };
-  if (Date.now() > entry.expira) {
-    codigosOTP.delete(usuarioId);
-    return { ok: false, error: 'Código expirado. Solicita uno nuevo.' };
+  const lista = codigosOTP.get(usuarioId);
+  if (!lista || lista.length === 0) {
+    return { ok: false, error: 'Código no encontrado. Solicita uno nuevo.' };
   }
-  if (entry.intentos >= 5) {
-    codigosOTP.delete(usuarioId);
-    return { ok: false, error: 'Demasiados intentos. Solicita un nuevo código.' };
-  }
-  entry.intentos++;
-  if (entry.codigo !== codigo) {
+
+  // Limpiar expirados
+  const ahora = Date.now();
+  const activos = lista.filter((c) => ahora < c.expira);
+  codigosOTP.set(usuarioId, activos);
+
+  // Buscar el código en cualquiera de las sesiones activas
+  const entry = activos.find((c) => c.codigo === codigo);
+  if (!entry) {
+    if (activos.length === 0) {
+      return { ok: false, error: 'Código expirado. Solicita uno nuevo.' };
+    }
     return { ok: false, error: 'Código incorrecto.' };
   }
-  // NO borramos el código — permite usarlo en múltiples dispositivos
-  // Se borra automáticamente cuando expira (5 minutos)
+
+  if (entry.intentos >= 5) {
+    codigosOTP.set(usuarioId, activos.filter((c) => c !== entry));
+    return { ok: false, error: 'Demasiados intentos con este código. Solicita uno nuevo.' };
+  }
+
+  entry.intentos++;
+
+  // Código correcto — eliminar SOLO este código (no los de otros dispositivos)
+  codigosOTP.set(usuarioId, activos.filter((c) => c !== entry));
+
   return { ok: true };
 }
 
