@@ -104,9 +104,9 @@ router.post('/enviar', async (req, res) => {
   let payload;
   try {
     payload = jwt.verify(token, process.env.JWT_SECRET);
-    if (!payload.temp2FA) return res.status(400).json({ error: 'Token inválido.' });
+    if (!payload.temp2FA) return res.status(400).json({ error: 'Token inválido.', code: 'INVALID_TOKEN' });
   } catch {
-    return res.status(401).json({ error: 'Token expirado o inválido.' });
+    return res.status(401).json({ error: 'Token expirado o inválido.', code: 'TOKEN_EXPIRED' });
   }
 
   try {
@@ -151,14 +151,14 @@ router.post(
     let payload;
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET);
-      if (!payload.temp2FA) return res.status(400).json({ error: 'Token inválido.' });
+      if (!payload.temp2FA) return res.status(400).json({ error: 'Token inválido.', code: 'INVALID_TOKEN' });
     } catch {
-      return res.status(401).json({ error: 'Token expirado o inválido.' });
+      return res.status(401).json({ error: 'Token expirado o inválido. Se envió un nuevo código.', code: 'TOKEN_EXPIRED' });
     }
 
     const resultado = verificarCodigo(payload.id, codigo);
     if (!resultado.ok) {
-      return res.status(400).json({ error: resultado.error });
+      return res.status(400).json({ error: resultado.error, code: 'CODE_ERROR' });
     }
 
     try {

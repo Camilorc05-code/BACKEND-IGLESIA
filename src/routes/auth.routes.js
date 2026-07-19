@@ -31,11 +31,11 @@ router.post(
         return res.status(401).json({ error: 'Credenciales incorrectas.' });
       }
 
-      // Siempre requerir verificación SMS
+      // TempToken para verificación OTP (15 minutos de gracia)
       const tempToken = jwt.sign(
         { id: usuario.id, temp2FA: true },
         process.env.JWT_SECRET,
-        { expiresIn: '5m' }
+        { expiresIn: '15m' }
       );
 
       return res.json({
