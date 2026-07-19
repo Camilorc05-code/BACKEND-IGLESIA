@@ -89,15 +89,23 @@ router.post(
     }
     const { imagenes, fecha, ...datos } = req.body;
     try {
+      const imagenesCreate = imagenes?.length
+        ? { create: imagenes.map((img) => ({
+            url: typeof img === 'string' ? img : img.url,
+            orden: typeof img === 'string' ? 0 : (img.orden ?? 0),
+            position: typeof img === 'string' ? '50% 50%' : (img.position || '50% 50%'),
+          })) }
+        : undefined;
+
       const evento = await prisma.evento.create({
         data: {
           ...datos,
           fecha: normalizarFecha(fecha),
-          imagenes: imagenes?.length
-            ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
-            : undefined,
+          imagenes: imagenesCreate,
         },
-        include: { imagenes: true },
+        include: { imagenes: true,
+          _count: { select: { imagenes: true } }
+        },
       });
       registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'CREATE', entidad: 'Evento', entidadId: evento.id, detalle: evento.titulo });
       res.status(201).json(evento);
@@ -115,12 +123,18 @@ router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
     if (imagenes) {
       await prisma.eventoImagen.deleteMany({ where: { eventoId: Number(req.params.id) } });
     }
+    const imagenesCreate = imagenes?.length
+      ? { create: imagenes.map((img) => ({
+          url: typeof img === 'string' ? img : img.url,
+          orden: typeof img === 'string' ? 0 : (img.orden ?? 0),
+          position: typeof img === 'string' ? '50% 50%' : (img.position || '50% 50%'),
+        })) }
+      : undefined;
+
     const updateData = {
       ...datos,
       fecha: normalizarFecha(fecha),
-      imagenes: imagenes?.length
-        ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
-        : undefined,
+      imagenes: imagenesCreate,
     };
     const evento = await prisma.evento.update({
       where: { id: Number(req.params.id) },

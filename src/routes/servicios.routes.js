@@ -33,12 +33,18 @@ router.post(
     }
     const { imagenes, ...datos } = req.body;
     try {
+      const imagenesCreate = imagenes?.length
+        ? { create: imagenes.map((img) => ({
+            url: typeof img === 'string' ? img : img.url,
+            orden: typeof img === 'string' ? 0 : (img.orden ?? 0),
+            position: typeof img === 'string' ? '50% 50%' : (img.position || '50% 50%'),
+          })) }
+        : undefined;
+
       const servicio = await prisma.servicio.create({
         data: {
           ...datos,
-          imagenes: imagenes?.length
-            ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
-            : undefined,
+          imagenes: imagenesCreate,
         },
         include: { imagenes: true },
       });
@@ -57,13 +63,19 @@ router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
     if (imagenes) {
       await prisma.servicioImagen.deleteMany({ where: { servicioId: Number(req.params.id) } });
     }
+    const imagenesCreate = imagenes?.length
+      ? { create: imagenes.map((img) => ({
+          url: typeof img === 'string' ? img : img.url,
+          orden: typeof img === 'string' ? 0 : (img.orden ?? 0),
+          position: typeof img === 'string' ? '50% 50%' : (img.position || '50% 50%'),
+        })) }
+      : undefined;
+
     const servicio = await prisma.servicio.update({
       where: { id: Number(req.params.id) },
       data: {
         ...datos,
-        imagenes: imagenes?.length
-          ? { create: imagenes.map((url, i) => ({ url, orden: i })) }
-          : undefined,
+        imagenes: imagenesCreate,
       },
       include: { imagenes: { orderBy: { orden: 'asc' } } },
     });

@@ -94,6 +94,7 @@ model ServicioImagen {
   servicio   Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
   url        String
   orden      Int      @default(0)
+  position   String?  @default("50% 50%") // posición de la imagen (object-position)
   createdAt  DateTime @default(now())
 
   @@map("servicio_imagenes")
@@ -128,6 +129,7 @@ model EventoImagen {
   evento    Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
   url       String
   orden     Int      @default(0)
+  position  String?  @default("50% 50%") // posición de la imagen (object-position)
   createdAt DateTime @default(now())
 
   @@map("evento_imagenes")
