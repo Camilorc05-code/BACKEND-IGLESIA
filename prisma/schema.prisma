@@ -31,9 +31,11 @@ model Usuario {
   passwordHash String
   rol          Rol      @default(LIDER)
   telefono     String?
-  activo       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  activo             Boolean  @default(true)
+  twoFactorEnabled   Boolean  @default(false)
+  twoFactorSecret    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   citasComoPastor Cita[] @relation("PastorCitas")
 

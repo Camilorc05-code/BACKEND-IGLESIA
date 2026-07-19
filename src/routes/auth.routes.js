@@ -31,6 +31,21 @@ router.post(
         return res.status(401).json({ error: 'Credenciales incorrectas.' });
       }
 
+      // Si 2FA está habilitado, devolver temp token en lugar del token completo
+      if (usuario.twoFactorEnabled) {
+        const tempToken = jwt.sign(
+          { id: usuario.id, temp2FA: true },
+          process.env.JWT_SECRET,
+          { expiresIn: '5m' }
+        );
+
+        return res.json({
+          requires2FA: true,
+          tempToken,
+          usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
+        });
+      }
+
       const token = jwt.sign(
         { id: usuario.id, email: usuario.email, rol: usuario.rol, nombre: usuario.nombre },
         process.env.JWT_SECRET,
