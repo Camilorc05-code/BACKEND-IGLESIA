@@ -168,7 +168,22 @@ router.post(
         mensaje: 'Cita solicitada correctamente. Te contactaremos para confirmar.',
         cita,
       });
+
+      // Notificación al pastor (in-app + push)
       crearNotificacion({ tipo: 'nueva_cita', titulo: 'Nueva cita agendada', mensaje: `${nombreSolicitante} agendó cita para el ${new Date(fecha).toLocaleDateString('es-CO')} a las ${hora}.` }, { push: true, pushUsuarioId: Number(pastorId) });
+
+      // Notificación a TODOS los admin (solo in-app, sin push)
+      try {
+        const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN', activo: true } });
+        for (const admin of admins) {
+          await crearNotificacion({
+            tipo: 'nueva_cita',
+            titulo: 'Nueva cita pastoral',
+            mensaje: `${nombreSolicitante} agendó cita con ${cita.pastor?.nombre || 'Pastor'} para el ${new Date(fecha).toLocaleDateString('es-CO')} a las ${formatTime12h(hora)}.`,
+          });
+        }
+      } catch (e) { /* ignorar error de notificación admin */ }
+
       registrarAuditoria({ usuario: 'Público', accion: 'CREATE', entidad: 'Cita', entidadId: cita.id, detalle: `${nombreSolicitante} → ${cita.pastor?.nombre || 'Pastor'}` });
     } catch (err) {
       console.error(err);
@@ -177,11 +192,11 @@ router.post(
   }
 );
 
-// GET /api/citas/auto-recordatorios — envía recordatorios automáticos (UptimeRobot / cron)
-// ANTES de requireAuth para que UptimeRobot no reciba 401
+// GET /api/citas/auto-recordatorios — envía recordatorios automáticos (UptimeRobot / cron / frontend polling)
 router.get('/auto-recordatorios', async (req, res) => {
   const token = req.query.token;
-  if (!token || token !== process.env.REMINDER_SECRET) {
+  const hasAuth = req.headers.authorization;
+  if ((!token || token !== process.env.REMINDER_SECRET) && !hasAuth) {
     return res.status(401).json({ error: 'Token inválido.' });
   }
 
@@ -218,6 +233,23 @@ router.get('/auto-recordatorios', async (req, res) => {
         if (subsPastor.length > 0) {
           await enviarPush(subsPastor, '🔔 Recordatorio de cita', `Tienes cita con ${cita.nombreSolicitante} el ${new Date(cita.fecha).toLocaleDateString('es-CO')} a las ${cita.hora}`, '/admin/citas');
         }
+        // Notificación in-app al pastor
+        await crearNotificacion({
+          tipo: 'recordatorio',
+          titulo: 'Recordatorio de cita',
+          mensaje: `Tienes cita con ${cita.nombreSolicitante} el ${new Date(cita.fecha).toLocaleDateString('es-CO')} a las ${cita.hora}.`,
+        });
+        // Notificación in-app al admin
+        try {
+          const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN', activo: true } });
+          for (const admin of admins) {
+            await crearNotificacion({
+              tipo: 'recordatorio',
+              titulo: 'Recordatorio de cita',
+              mensaje: `${cita.pastor.nombre} tiene cita con ${cita.nombreSolicitante} el ${new Date(cita.fecha).toLocaleDateString('es-CO')} a las ${cita.hora}.`,
+            });
+          }
+        } catch (e) { /* ignorar */ }
         await prisma.cita.update({ where: { id: cita.id }, data: { recordatorioEnviado: true } });
         enviadosPastor++;
       } catch (err) {
@@ -374,7 +406,24 @@ router.put(
       const cita = await prisma.cita.update({
         where: { id: Number(req.params.id) },
         data: { estado: req.body.estado, notasInternas: req.body.notasInternas },
+        include: { pastor: { select: { id: true, nombre: true } } },
       });
+
+      // Notificar a admin cuando cambia estado
+      if (req.body.estado !== 'PENDIENTE') {
+        const estadoEmoji = { CONFIRMADA: '✅', CANCELADA: '❌', COMPLETADA: '🏁' }[req.body.estado] || '📌';
+        try {
+          const admins = await prisma.usuario.findMany({ where: { rol: 'ADMIN', activo: true } });
+          for (const admin of admins) {
+            await crearNotificacion({
+              tipo: 'nueva_cita',
+              titulo: `${estadoEmoji} Cita ${req.body.estado.toLowerCase()}`,
+              mensaje: `Cita con ${cita.nombreSolicitante || 'solicitante'} → ${cita.pastor?.nombre || 'Pastor'} fue ${req.body.estado.toLowerCase()}.`,
+            });
+          }
+        } catch (e) { /* ignorar */ }
+      }
+
       registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'Cita', entidadId: cita.id, detalle: `Estado → ${req.body.estado}` });
       res.json(cita);
     } catch (err) {
