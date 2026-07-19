@@ -37,7 +37,8 @@ function verificarCodigo(usuarioId, codigo) {
   if (entry.codigo !== codigo) {
     return { ok: false, error: 'Código incorrecto.' };
   }
-  codigosOTP.delete(usuarioId);
+  // NO borramos el código — permite usarlo en múltiples dispositivos
+  // Se borra automáticamente cuando expira (5 minutos)
   return { ok: true };
 }
 
