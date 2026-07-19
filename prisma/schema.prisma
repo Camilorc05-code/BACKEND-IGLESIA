@@ -70,17 +70,18 @@ model Persona {
 }
 
 model Servicio {
-  id          Int      @id @default(autoincrement())
-  nombre      String // ej: "Servicio Dominical", "Culto de Oración"
-  diaSemana   String // "Domingo", "Lunes", ... "Sábado"
-  horaInicio  String // "09:00"
-  horaFin     String?
-  lugar       String?
-  descripcion String?
-  imagenUrl   String? // imagen de portada
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  nombre         String // ej: "Servicio Dominical", "Culto de Oración"
+  diaSemana      String // "Domingo", "Lunes", ... "Sábado"
+  horaInicio     String // "09:00"
+  horaFin        String?
+  lugar          String?
+  descripcion    String?
+  imagenUrl      String? // imagen de portada
+  imagenPosicion String? @default("center center") // posición de la imagen
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   imagenes ServicioImagen[]
 
@@ -99,15 +100,16 @@ model ServicioImagen {
 }
 
 model Evento {
-  id          Int      @id @default(autoincrement())
-  titulo      String
-  descripcion String?
-  fecha       DateTime
-  horaInicio  String?
-  horaFin     String?
-  lugar       String?
-  imagenUrl   String? // imagen de portada
-  categoria   String   @default("Otro")
+  id             Int      @id @default(autoincrement())
+  titulo         String
+  descripcion    String?
+  fecha          DateTime
+  horaInicio     String?
+  horaFin        String?
+  lugar          String?
+  imagenUrl      String? // imagen de portada
+  imagenPosicion String? @default("center center") // posición de la imagen
+  categoria      String   @default("Otro")
   // Categorías sugeridas: "Cumbre Ministerial", "Fiesta de Primicias",
   // "Juntos Bajo la Bendición de Dios", "Acción de Gracias",
   // "Ministerio M.I.A", "Ministerio M.J.P", "Vigilia", "Día del Padre",
