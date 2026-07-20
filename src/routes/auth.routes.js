@@ -94,6 +94,27 @@ router.post(
   }
 );
 
+// PUT /api/auth/cambiar-password — cambiar contraseña propia
+router.put('/cambiar-password', requireAuth, [body('actual').notEmpty(), body('nueva').isLength({ min: 6 })], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.', details: errors.array() });
+
+  const { actual, nueva } = req.body;
+  try {
+    const usuario = await prisma.usuario.findUnique({ where: { id: req.usuario.id } });
+    const ok = await bcrypt.compare(actual, usuario.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'La contraseña actual es incorrecta.' });
+
+    const hash = await bcrypt.hash(nueva, 10);
+    await prisma.usuario.update({ where: { id: req.usuario.id }, data: { passwordHash: hash } });
+    registrarAuditoria({ usuario: req.usuario?.nombre, usuarioId: req.usuario?.id, accion: 'UPDATE', entidad: 'Usuario', entidadId: req.usuario.id, detalle: 'Contraseña cambiada' });
+    res.json({ ok: true, mensaje: 'Contraseña actualizada correctamente.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al cambiar contraseña.' });
+  }
+});
+
 // GET /api/auth/me — perfil del usuario autenticado
 router.get('/me', requireAuth, async (req, res) => {
   const usuario = await prisma.usuario.findUnique({
